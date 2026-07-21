@@ -3,48 +3,50 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chuyma BrewLab - Gestión de Pedidos y Laboratorio</title>
-  <!-- Tailwind CSS CDN -->
+  <title>Chuyma BrewLab - Sistema Móvil de Planta</title>
+  <!-- Tailwind CSS CDN para interfaz visual -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- HTML5 QR Code Scanner CDN -->
+  <!-- Lector de Código QR directo para navegador móvil -->
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-  <!-- Firebase SDKs -->
+  <!-- Firebase SDKs (Modo Compatibilidad para SPA liviana) -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans">
 
-  <!-- HEADER -->
+  <!-- CABECERA PLANTA -->
   <header class="bg-slate-800 border-b border-amber-600 p-4 text-center shadow-lg">
     <h1 class="text-2xl font-bold tracking-wide text-amber-500">🍺 CHUYMA BREWLAB</h1>
-    <p class="text-xs text-slate-400">Sistema de Ventas, Trazabilidad y Bodega</p>
+    <p class="text-xs text-slate-400">Control de Planta, Laboratorio y Pedidos</p>
   </header>
 
-  <!-- VISTA DE LOGIN -->
+  <!-- PANTALLA 1: LOGIN SEGURIDAD (ZERO-TRUST) -->
   <div id="login-view" class="flex-1 flex items-center justify-center p-4">
     <div class="bg-slate-800 p-6 rounded-2xl shadow-xl w-full max-w-sm border border-slate-700">
-      <h2 class="text-xl font-semibold mb-4 text-center text-amber-400">Acceso Controlado</h2>
+      <h2 class="text-xl font-semibold mb-1 text-center text-amber-400">Acceso Controlado</h2>
+      <p class="text-xs text-slate-400 text-center mb-5">Proyecto: chuyma-brewlab</p>
+      
       <form id="login-form" class="space-y-4">
         <div>
           <label class="block text-xs font-bold uppercase mb-1 text-slate-300">Correo Electrónico</label>
-          <input type="email" id="login-email" class="w-full bg-slate-900 border border-slate-700 rounded p-3 text-white focus:outline-none focus:border-amber-500" required>
+          <input type="email" id="login-email" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:border-amber-500" placeholder="cony@chuyma.cl" required>
         </div>
         <div>
           <label class="block text-xs font-bold uppercase mb-1 text-slate-300">Contraseña</label>
-          <input type="password" id="login-password" class="w-full bg-slate-900 border border-slate-700 rounded p-3 text-white focus:outline-none focus:border-amber-500" required>
+          <input type="password" id="login-password" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:border-amber-500" required>
         </div>
-        <button type="submit" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-3 rounded-lg shadow transition duration-200">
+        <button type="submit" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-3 rounded-xl shadow transition duration-200">
           INGRESAR A PLANTA
         </button>
       </form>
     </div>
   </div>
 
-  <!-- PANEL PRINCIPAL (AUTENTICADO) -->
+  <!-- PANTALLA 2: PANEL OPERATIVO (USUARIO AUTENTICADO) -->
   <div id="app-view" class="hidden flex-1 p-4 max-w-2xl mx-auto w-full space-y-6">
 
-    <!-- BARRA NAVEGACIÓN TABS -->
+    <!-- SELECTOR DE NAVEGACIÓN (TABS) -->
     <div class="grid grid-cols-2 gap-2 bg-slate-800 p-1.5 rounded-xl border border-slate-700">
       <button id="tab-pedidos-btn" onclick="switchTab('pedidos')" class="py-2.5 rounded-lg font-bold text-sm bg-amber-600 text-white shadow">
         📦 Nuevo Pedido
@@ -54,85 +56,85 @@
       </button>
     </div>
 
-    <!-- SECCIÓN: NUEVO PEDIDO -->
+    <!-- MÓDULO 1: PEDIDOS Y CÁLCULO DE IMPUESTOS (ILA + IVA) -->
     <div id="sec-pedidos" class="bg-slate-800 p-5 rounded-2xl border border-slate-700 shadow-md space-y-4">
-      <h2 class="text-lg font-bold text-amber-400 border-b border-slate-700 pb-2">Registrar Nuevo Pedido</h2>
+      <h2 class="text-lg font-bold text-amber-400 border-b border-slate-700 pb-2">Registrar Pedido de Cerveza</h2>
       
       <div class="space-y-3">
         <div>
           <label class="block text-xs font-bold text-slate-300 mb-1">Cliente / Destino</label>
-          <input type="text" id="ped-cliente" placeholder="Ej: Bar El Lúpulo" class="w-full bg-slate-900 border border-slate-700 rounded p-2.5 text-sm text-white focus:border-amber-500">
+          <input type="text" id="ped-cliente" placeholder="Ej: Bar El Lúpulo" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:border-amber-500">
         </div>
 
         <div>
-          <label class="block text-xs font-bold text-slate-300 mb-1">Lote de Cerveza Disponible</label>
-          <select id="ped-lote" class="w-full bg-slate-900 border border-slate-700 rounded p-2.5 text-sm text-white focus:border-amber-500">
-            <!-- Carga dinámica desde Firestore -->
-            <option value="">Cargando lotes disponibles...</option>
+          <label class="block text-xs font-bold text-slate-300 mb-1">Lote de Cerveza (Trazabilidad)</label>
+          <select id="ped-lote" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:border-amber-500">
+            <option value="">Cargando lotes desde Firestore...</option>
           </select>
         </div>
 
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="block text-xs font-bold text-slate-300 mb-1">Cantidad Unidades</label>
-            <input type="number" id="ped-cantidad" value="1" min="1" class="w-full bg-slate-900 border border-slate-700 rounded p-2.5 text-sm text-white focus:border-amber-500" oninput="calcularTotal()">
+            <input type="number" id="ped-cantidad" value="1" min="1" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:border-amber-500" oninput="calcularTotal()">
           </div>
           <div>
             <label class="block text-xs font-bold text-slate-300 mb-1">Precio Neto Unitario ($)</label>
-            <input type="number" id="ped-neto-unitario" value="1200" min="0" class="w-full bg-slate-900 border border-slate-700 rounded p-2.5 text-sm text-white focus:border-amber-500" oninput="calcularTotal()">
+            <input type="number" id="ped-neto-unitario" value="1200" min="0" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:border-amber-500" oninput="calcularTotal()">
           </div>
         </div>
       </div>
 
-      <!-- CÁLCULO EN TIEMPO REAL -->
+      <!-- DESGLOSE CONTABLE LEGAL (CHILE) -->
       <div class="bg-slate-900 p-4 rounded-xl border border-slate-700 space-y-1 text-sm font-mono">
         <div class="flex justify-between text-slate-400"><span>Subtotal Neto:</span><span id="res-neto">$0</span></div>
         <div class="flex justify-between text-slate-400"><span>ILA (20,5%):</span><span id="res-ila">$0</span></div>
         <div class="flex justify-between text-slate-400"><span>IVA (19,0%):</span><span id="res-iva">$0</span></div>
-        <div class="flex justify-between text-amber-400 font-bold text-base border-t border-slate-800 pt-1 mt-1"><span>TOTAL BRUTO:</span><span id="res-bruto">$0</span></div>
+        <div class="flex justify-between text-amber-400 font-bold text-base border-t border-slate-800 pt-1 mt-1"><span>TOTAL BRUTO A COBRAR:</span><span id="res-bruto">$0</span></div>
       </div>
 
       <button onclick="generarPedido()" class="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-3 rounded-xl shadow transition duration-200">
-        CONFIRMAR PEDIDO Y GENERAR OT
+        GENERAR OT Y REGISTRAR EN FIRESTORE
       </button>
 
-      <!-- VISTA ORDEN DE TRABAJO GENERADA -->
+      <!-- FORMATO OPERATIVO SIN PRECIOS PARA BODEGA -->
       <div id="ot-resultado" class="hidden bg-white text-slate-900 p-4 rounded-xl font-mono text-xs space-y-2 border-2 border-dashed border-amber-500">
         <h3 class="font-bold text-center border-b border-slate-300 pb-1 text-sm">ORDEN DE TRABAJO (OT) - BODEGA</h3>
-        <p><strong>CÓDIGO:</strong> <span id="ot-codigo"></span></p>
+        <p><strong>CÓDIGO OT:</strong> <span id="ot-codigo"></span></p>
         <p><strong>CLIENTE:</strong> <span id="ot-cliente"></span></p>
         <p><strong>LOTE ASOCIADO:</strong> <span id="ot-lote"></span></p>
-        <p><strong>CANTIDAD:</strong> <span id="ot-cant"></span> unidades</p>
+        <p><strong>CANTIDAD A PREPARAR:</strong> <span id="ot-cant"></span> unidades</p>
         <div class="border-t border-slate-300 pt-2 text-center text-slate-500">
-          [ Formato Limpio de Bodega - Sin Precios ]
+          [ Documento Operativo - Formato de Despacho Sin Valores Monetarios ]
         </div>
       </div>
     </div>
 
-    <!-- SECCIÓN: ESCÁNER QR -->
+    <!-- MÓDULO 2: ESCÁNER QR CON CÁMARA MÓVIL -->
     <div id="sec-qr" class="hidden bg-slate-800 p-5 rounded-2xl border border-slate-700 shadow-md space-y-4">
-      <h2 class="text-lg font-bold text-amber-400 border-b border-slate-700 pb-2">Control de Stock por QR</h2>
-      <div id="reader" class="bg-slate-900 rounded-xl overflow-hidden"></div>
+      <h2 class="text-lg font-bold text-amber-400 border-b border-slate-700 pb-2">Escáner de Trazabilidad QR</h2>
+      <div id="reader" class="bg-slate-900 rounded-xl overflow-hidden min-h-[250px]"></div>
       <div id="qr-result" class="bg-slate-900 p-3 rounded-xl text-xs font-mono text-amber-300 border border-slate-700 hidden"></div>
     </div>
 
-    <!-- BOTÓN DE CERRAR SESIÓN -->
-    <button onclick="logout()" class="w-full text-xs text-slate-400 hover:text-red-400 py-2 transition">
+    <!-- BOTÓN DE CIERRE DE SESIÓN -->
+    <button onclick="logout()" class="w-full text-xs text-slate-400 hover:text-red-400 py-2 transition text-center block">
       🔒 Cerrar Sesión de Planta
     </button>
   </div>
 
   <script>
     // ----------------------------------------------------------------
-    // 1. CONFIGURACIÓN FIREBASE (Remplaza con tus datos de la consola)
+    // 1. CREDENCIALES REALES FIREBASE - CHUYMA BREWLAB
     // ----------------------------------------------------------------
     const firebaseConfig = {
-      apiKey: "TU_API_KEY",
-      authDomain: "TU_PROJECT_ID.firebaseapp.com",
-      projectId: "TU_PROJECT_ID",
-      storageBucket: "TU_PROJECT_ID.appspot.com",
-      messagingSenderId: "TU_MESSAGING_SENDER_ID",
-      appId: "TU_APP_ID"
+      apiKey: "AIzaSyCQ4QFGewjTxiYUyRON-iS8Yir685HT2n4",
+      authDomain: "chuyma-brewlab.firebaseapp.com",
+      projectId: "chuyma-brewlab",
+      storageBucket: "chuyma-brewlab.firebasestorage.app",
+      messagingSenderId: "410889713989",
+      appId: "1:410889713989:web:02a65f6482c28d794d262c",
+      measurementId: "G-SL67V5C53X"
     };
 
     firebase.initializeApp(firebaseConfig);
@@ -140,7 +142,7 @@
     const db = firebase.firestore();
 
     // ----------------------------------------------------------------
-    // 2. AUTENTICACIÓN
+    // 2. LÓGICA DE AUTENTICACIÓN
     // ----------------------------------------------------------------
     document.getElementById('login-form').addEventListener('submit', (e) => {
       e.preventDefault();
@@ -167,7 +169,7 @@
     function logout() { auth.signOut(); }
 
     // ----------------------------------------------------------------
-    // 3. LÓGICA DE NAVEGACIÓN TABS
+    // 3. CAMBIO DE PESTAÑAS (TABS)
     // ----------------------------------------------------------------
     function switchTab(tab) {
       const secPed = document.getElementById('sec-pedidos');
@@ -190,7 +192,7 @@
     }
 
     // ----------------------------------------------------------------
-    // 4. MOTOR DE CÁLCULO FINANCIERO Y PEDIDOS
+    // 4. CÁLCULOS FINANCIEROS Y CONEXIÓN CON FIRESTORE
     // ----------------------------------------------------------------
     function calcularTotal() {
       const cant = parseFloat(document.getElementById('ped-cantidad').value) || 0;
@@ -212,40 +214,64 @@
       db.collection('pedidos_y_lotes').get().then(snapshot => {
         select.innerHTML = '';
         if (snapshot.empty) {
-          select.innerHTML = '<option value="LOTE-DEMO-PA">PA-2026-04 (Pale Ale - Lote Demo)</option>';
+          select.innerHTML = '<option value="PA-2026-04">PA-2026-04 (Pale Ale - Stock Disponible)</option>';
           return;
         }
         snapshot.forEach(doc => {
           const data = doc.data();
-          select.innerHTML += `<option value="${doc.id}">${doc.id} - ${data.nombre || 'Cerveza'}</option>`;
+          select.innerHTML += `<option value="${doc.id}">${doc.id} - ${data.nombre || 'Lote Cerveza'}</option>`;
         });
       }).catch(() => {
-        select.innerHTML = '<option value="LOTE-PA-2026-04">PA-2026-04 (Pale Ale - Stock Disponible)</option>';
+        select.innerHTML = '<option value="PA-2026-04">PA-2026-04 (Pale Ale - Stock Disponible)</option>';
       });
     }
 
     function generarPedido() {
       const cliente = document.getElementById('ped-cliente').value;
       const lote = document.getElementById('ped-lote').value;
-      const cant = document.getElementById('ped-cantidad').value;
+      const cant = parseFloat(document.getElementById('ped-cantidad').value) || 0;
+      const netoUnit = parseFloat(document.getElementById('ped-neto-unitario').value) || 0;
 
       if (!cliente) {
-        alert("Ingresa el nombre del cliente.");
+        alert("Por favor ingresa el nombre del cliente.");
         return;
       }
 
-      const idOT = `OT-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+      const fecha = new Date();
+      const mes = String(fecha.getMonth() + 1).padStart(2, '0');
+      const numRandom = Math.floor(100 + Math.random() * 900);
+      const idOT = `OT-${fecha.getFullYear()}-${mes}-${numRandom}`;
 
-      document.getElementById('ot-codigo').innerText = idOT;
-      document.getElementById('ot-cliente').innerText = cliente;
-      document.getElementById('ot-lote').innerText = lote;
-      document.getElementById('ot-cant').innerText = cant;
+      const subtotalNeto = cant * netoUnit;
+      const ila = subtotalNeto * 0.205;
+      const iva = subtotalNeto * 0.190;
+      const totalBruto = subtotalNeto + ila + iva;
 
-      document.getElementById('ot-resultado').classList.remove('hidden');
+      // Guardar registro oficial en Firestore
+      db.collection('pedidos_y_lotes').doc(idOT).set({
+        codigoOT: idOT,
+        cliente: cliente,
+        loteCerveza: lote,
+        cantidad: cant,
+        netoUnitario: netoUnit,
+        subtotalNeto: subtotalNeto,
+        ila: ila,
+        iva: iva,
+        totalBruto: totalBruto,
+        fechaEmision: firebase.firestore.FieldValue.serverTimestamp()
+      }).then(() => {
+        document.getElementById('ot-codigo').innerText = idOT;
+        document.getElementById('ot-cliente').innerText = cliente;
+        document.getElementById('ot-lote').innerText = lote;
+        document.getElementById('ot-cant').innerText = cant;
+        document.getElementById('ot-resultado').classList.remove('hidden');
+      }).catch(err => {
+        alert("Error al registrar en Firestore: " + err.message);
+      });
     }
 
     // ----------------------------------------------------------------
-    // 5. ESCÁNER QR DE BODEGA
+    // 5. ESCÁNER QR CON CÁMARA TRASERA
     // ----------------------------------------------------------------
     let html5QrcodeScanner;
     function iniciarEscanerQR() {
@@ -253,7 +279,7 @@
         html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
         html5QrcodeScanner.render((decodedText) => {
           const resDiv = document.getElementById('qr-result');
-          resDiv.innerText = `LOTE ESCANEADO: ${decodedText}`;
+          resDiv.innerText = `LOTE / INSUMO DETECTADO: ${decodedText}`;
           resDiv.classList.remove('hidden');
         });
       }
