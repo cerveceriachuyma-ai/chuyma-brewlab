@@ -56,7 +56,7 @@
       </button>
     </div>
 
-    <!-- MÓDULO 1: PEDIDOS Y CÁLCULO DE IMPUESTOS (ILA + IVA) -->
+    <!-- MÓDULO 1: PEDIDOS Y CÁLCULO DE IMPUESTOS (PRECIO FINAL CON IVA+ILA) -->
     <div id="sec-pedidos" class="bg-slate-800 p-5 rounded-2xl border border-slate-700 shadow-md space-y-4">
       <h2 class="text-lg font-bold text-amber-400 border-b border-slate-700 pb-2">Registrar Pedido de Cerveza</h2>
       
@@ -67,8 +67,8 @@
         </div>
 
         <div>
-          <label class="block text-xs font-bold text-slate-300 mb-1">Lote de Cerveza (Trazabilidad desde Inventario)</label>
-          <select id="ped-lote" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:border-amber-500">
+          <label class="block text-xs font-bold text-slate-300 mb-1">Lote / Producto (Desde Inventario)</label>
+          <select id="ped-lote" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:border-amber-500" onchange="actualizarPrecioDesdeInventario()">
             <option value="">Cargando lotes desde inventariochuyma...</option>
           </select>
         </div>
@@ -79,13 +79,13 @@
             <input type="number" id="ped-cantidad" value="1" min="1" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:border-amber-500" oninput="calcularTotal()">
           </div>
           <div>
-            <label class="block text-xs font-bold text-slate-300 mb-1">Precio Neto Unitario ($)</label>
-            <input type="number" id="ped-neto-unitario" value="1200" min="0" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:border-amber-500" oninput="calcularTotal()">
+            <label class="block text-xs font-bold text-slate-300 mb-1">Precio Final Unitario ($ Incl. IVA+ILA)</label>
+            <input type="number" id="ped-bruto-unitario" value="1674" min="0" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:border-amber-500" oninput="calcularTotal()">
           </div>
         </div>
       </div>
 
-      <!-- DESGLOSE CONTABLE LEGAL (CHILE) -->
+      <!-- DESGLOSE CONTABLE LEGAL (CHILE - DESGLOSE DESDE PRECIO BRUTO) -->
       <div class="bg-slate-900 p-4 rounded-xl border border-slate-700 space-y-1 text-sm font-mono">
         <div class="flex justify-between text-slate-400"><span>Subtotal Neto:</span><span id="res-neto">$0</span></div>
         <div class="flex justify-between text-slate-400"><span>ILA (20,5%):</span><span id="res-ila">$0</span></div>
@@ -141,8 +141,8 @@
     const auth = firebase.auth();
     const db = firebase.firestore();
 
-    // Guardamos el stock en memoria para validar antes de vender
     let lotesStockMap = {};
+    let lotesPrecioMap = {};
 
     // ----------------------------------------------------------------
     // 2. LÓGICA DE AUTENTICACIÓN
@@ -195,18 +195,21 @@
     }
 
     // ----------------------------------------------------------------
-    // 4. CÁLCULOS FINANCIEROS Y CONEXIÓN CON FIRESTORE
+    // 4. CÁLCULOS FINANCIEROS INVERSOS (DESGLOSE DESDE PRECIO BRUTO)
     // ----------------------------------------------------------------
     function calcularTotal() {
       const cant = parseFloat(document.getElementById('ped-cantidad').value) || 0;
-      const netoUnit = parseFloat(document.getElementById('ped-neto-unitario').value) || 0;
+      const brutoUnitario = parseFloat(document.getElementById('ped-bruto-unitario').value) || 0;
 
-      const subtotalNeto = cant * netoUnit;
+      const totalBruto = cant * brutoUnitario;
+      
+      // Desglose inverso considerando 20.5% ILA y 19.0% IVA sobre el neto
+      // Factor Total = 1 + 0.205 + 0.190 = 1.395
+      const subtotalNeto = totalBruto / 1.395;
       const ila = subtotalNeto * 0.205;
       const iva = subtotalNeto * 0.190;
-      const totalBruto = subtotalNeto + ila + iva;
 
-      document.getElementById('res-neto').innerText = `$${subtotalNeto.toLocaleString('es-CL')}`;
+      document.getElementById('res-neto').innerText = `$${Math.round(subtotalNeto).toLocaleString('es-CL')}`;
       document.getElementById('res-ila').innerText = `$${Math.round(ila).toLocaleString('es-CL')}`;
       document.getElementById('res-iva').innerText = `$${Math.round(iva).toLocaleString('es-CL')}`;
       document.getElementById('res-bruto').innerText = `$${Math.round(totalBruto).toLocaleString('es-CL')}`;
@@ -214,9 +217,9 @@
 
     function cargarLotesDisponibles() {
       const select = document.getElementById('ped-lote');
-      lotesStockMap = {}; // Limpiamos la memoria local
+      lotesStockMap = {};
+      lotesPrecioMap = {};
 
-      // Consultamos directamente la colección inventariochuyma
       db.collection('inventariochuyma').get().then(snapshot => {
         select.innerHTML = '';
         let lotesValidos = 0;
@@ -224,10 +227,11 @@
         snapshot.forEach(doc => {
           const data = doc.data();
           const stockActual = data.stock !== undefined ? data.stock : (data.cantidad !== undefined ? data.cantidad : 0);
+          const precioFinal = data.precioFinal || data.precioBruto || 0;
 
-          // SOLO mostramos lotes con stock real mayor a cero
           if (stockActual > 0) {
             lotesStockMap[doc.id] = stockActual;
+            lotesPrecioMap[doc.id] = precioFinal;
             select.innerHTML += `<option value="${doc.id}">${doc.id} - ${data.nombre || 'Cerveza'} (Stock: ${stockActual} un.)</option>`;
             lotesValidos++;
           }
@@ -235,6 +239,8 @@
 
         if (lotesValidos === 0) {
           select.innerHTML = '<option value="">⚠️ No hay stock disponible en planta</option>';
+        } else {
+          actualizarPrecioDesdeInventario();
         }
       }).catch(err => {
         console.error("Error cargando inventario:", err);
@@ -242,11 +248,19 @@
       });
     }
 
+    function actualizarPrecioDesdeInventario() {
+      const loteId = document.getElementById('ped-lote').value;
+      if (loteId && lotesPrecioMap[loteId] > 0) {
+        document.getElementById('ped-bruto-unitario').value = lotesPrecioMap[loteId];
+        calcularTotal();
+      }
+    }
+
     function generarPedido() {
       const cliente = document.getElementById('ped-cliente').value;
       const loteId = document.getElementById('ped-lote').value;
       const cant = parseFloat(document.getElementById('ped-cantidad').value) || 0;
-      const netoUnit = parseFloat(document.getElementById('ped-neto-unitario').value) || 0;
+      const brutoUnitario = parseFloat(document.getElementById('ped-bruto-unitario').value) || 0;
 
       if (!cliente) {
         alert("Por favor ingresa el nombre del cliente.");
@@ -269,12 +283,11 @@
       const numRandom = Math.floor(100 + Math.random() * 900);
       const idOT = `OT-${fecha.getFullYear()}-${mes}-${numRandom}`;
 
-      const subtotalNeto = cant * netoUnit;
+      const totalBruto = cant * brutoUnitario;
+      const subtotalNeto = totalBruto / 1.395;
       const ila = subtotalNeto * 0.205;
       const iva = subtotalNeto * 0.190;
-      const totalBruto = subtotalNeto + ila + iva;
 
-      // Transacción atómica en Firestore: resta de stock en inventariochuyma y creación de OT
       const loteRef = db.collection('inventariochuyma').doc(loteId);
       const otRef = db.collection('pedidos_y_lotes').doc(idOT);
 
@@ -293,28 +306,25 @@
 
           const nuevoStock = stockActual - cant;
 
-          // Actualizamos el stock real
           transaction.update(loteRef, {
             stock: nuevoStock,
             cantidad: nuevoStock
           });
 
-          // Registramos la Orden de Trabajo
           transaction.set(otRef, {
             codigoOT: idOT,
             cliente: cliente,
             loteCerveza: loteId,
             cantidad: cant,
-            netoUnitario: netoUnit,
-            subtotalNeto: subtotalNeto,
-            ila: ila,
-            iva: iva,
-            totalBruto: totalBruto,
+            brutoUnitario: brutoUnitario,
+            subtotalNeto: Math.round(subtotalNeto),
+            ila: Math.round(ila),
+            iva: Math.round(iva),
+            totalBruto: Math.round(totalBruto),
             fechaEmision: firebase.firestore.FieldValue.serverTimestamp()
           });
         });
       }).then(() => {
-        // Desplegamos la Orden de Trabajo limpia para bodega
         document.getElementById('ot-codigo').innerText = idOT;
         document.getElementById('ot-cliente').innerText = cliente;
         document.getElementById('ot-lote').innerText = loteId;
@@ -322,7 +332,7 @@
         document.getElementById('ot-resultado').classList.remove('hidden');
 
         alert("✅ Pedido registrado exitosamente y stock descontado de bodega.");
-        cargarLotesDisponibles(); // Refrescamos el listado
+        cargarLotesDisponibles();
       }).catch(err => {
         alert("Error al procesar la transacción: " + err);
       });
