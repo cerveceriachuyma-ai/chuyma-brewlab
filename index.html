@@ -67,9 +67,9 @@
         </div>
 
         <div>
-          <label class="block text-xs font-bold text-slate-300 mb-1">Lote de Cerveza (Trazabilidad)</label>
+          <label class="block text-xs font-bold text-slate-300 mb-1">Lote de Cerveza (Trazabilidad desde Inventario)</label>
           <select id="ped-lote" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:border-amber-500">
-            <option value="">Cargando lotes desde Firestore...</option>
+            <option value="">Cargando lotes desde inventariochuyma...</option>
           </select>
         </div>
 
@@ -141,6 +141,9 @@
     const auth = firebase.auth();
     const db = firebase.firestore();
 
+    // Guardamos el stock en memoria para validar antes de vender
+    let lotesStockMap = {};
+
     // ----------------------------------------------------------------
     // 2. LÓGICA DE AUTENTICACIÓN
     // ----------------------------------------------------------------
@@ -211,29 +214,53 @@
 
     function cargarLotesDisponibles() {
       const select = document.getElementById('ped-lote');
-      db.collection('pedidos_y_lotes').get().then(snapshot => {
+      lotesStockMap = {}; // Limpiamos la memoria local
+
+      // Consultamos directamente la colección inventariochuyma
+      db.collection('inventariochuyma').get().then(snapshot => {
         select.innerHTML = '';
-        if (snapshot.empty) {
-          select.innerHTML = '<option value="PA-2026-04">PA-2026-04 (Pale Ale - Stock Disponible)</option>';
-          return;
-        }
+        let lotesValidos = 0;
+
         snapshot.forEach(doc => {
           const data = doc.data();
-          select.innerHTML += `<option value="${doc.id}">${doc.id} - ${data.nombre || 'Lote Cerveza'}</option>`;
+          const stockActual = data.stock !== undefined ? data.stock : (data.cantidad !== undefined ? data.cantidad : 0);
+
+          // SOLO mostramos lotes con stock real mayor a cero
+          if (stockActual > 0) {
+            lotesStockMap[doc.id] = stockActual;
+            select.innerHTML += `<option value="${doc.id}">${doc.id} - ${data.nombre || 'Cerveza'} (Stock: ${stockActual} un.)</option>`;
+            lotesValidos++;
+          }
         });
-      }).catch(() => {
-        select.innerHTML = '<option value="PA-2026-04">PA-2026-04 (Pale Ale - Stock Disponible)</option>';
+
+        if (lotesValidos === 0) {
+          select.innerHTML = '<option value="">⚠️ No hay stock disponible en planta</option>';
+        }
+      }).catch(err => {
+        console.error("Error cargando inventario:", err);
+        select.innerHTML = '<option value="">⚠️ No hay stock disponible en planta</option>';
       });
     }
 
     function generarPedido() {
       const cliente = document.getElementById('ped-cliente').value;
-      const lote = document.getElementById('ped-lote').value;
+      const loteId = document.getElementById('ped-lote').value;
       const cant = parseFloat(document.getElementById('ped-cantidad').value) || 0;
       const netoUnit = parseFloat(document.getElementById('ped-neto-unitario').value) || 0;
 
       if (!cliente) {
         alert("Por favor ingresa el nombre del cliente.");
+        return;
+      }
+
+      if (!loteId || !lotesStockMap[loteId]) {
+        alert("⚠️ No hay stock disponible para procesar este pedido.");
+        return;
+      }
+
+      const stockDisponible = lotesStockMap[loteId];
+      if (cant > stockDisponible) {
+        alert(`⚠️ Stock insuficiente en bodega. Intentas pedir ${cant} unidades, pero solo quedan ${stockDisponible} disponibles.`);
         return;
       }
 
@@ -247,26 +274,57 @@
       const iva = subtotalNeto * 0.190;
       const totalBruto = subtotalNeto + ila + iva;
 
-      // Guardar registro oficial en Firestore
-      db.collection('pedidos_y_lotes').doc(idOT).set({
-        codigoOT: idOT,
-        cliente: cliente,
-        loteCerveza: lote,
-        cantidad: cant,
-        netoUnitario: netoUnit,
-        subtotalNeto: subtotalNeto,
-        ila: ila,
-        iva: iva,
-        totalBruto: totalBruto,
-        fechaEmision: firebase.firestore.FieldValue.serverTimestamp()
+      // Transacción atómica en Firestore: resta de stock en inventariochuyma y creación de OT
+      const loteRef = db.collection('inventariochuyma').doc(loteId);
+      const otRef = db.collection('pedidos_y_lotes').doc(idOT);
+
+      db.runTransaction(transaction => {
+        return transaction.get(loteRef).then(loteDoc => {
+          if (!loteDoc.exists) {
+            throw "El lote de cerveza no existe en el inventario.";
+          }
+
+          const dataLote = loteDoc.data();
+          const stockActual = dataLote.stock !== undefined ? dataLote.stock : (dataLote.cantidad !== undefined ? dataLote.cantidad : 0);
+
+          if (stockActual < cant) {
+            throw `Stock insuficiente. Quedan ${stockActual} unidades.`;
+          }
+
+          const nuevoStock = stockActual - cant;
+
+          // Actualizamos el stock real
+          transaction.update(loteRef, {
+            stock: nuevoStock,
+            cantidad: nuevoStock
+          });
+
+          // Registramos la Orden de Trabajo
+          transaction.set(otRef, {
+            codigoOT: idOT,
+            cliente: cliente,
+            loteCerveza: loteId,
+            cantidad: cant,
+            netoUnitario: netoUnit,
+            subtotalNeto: subtotalNeto,
+            ila: ila,
+            iva: iva,
+            totalBruto: totalBruto,
+            fechaEmision: firebase.firestore.FieldValue.serverTimestamp()
+          });
+        });
       }).then(() => {
+        // Desplegamos la Orden de Trabajo limpia para bodega
         document.getElementById('ot-codigo').innerText = idOT;
         document.getElementById('ot-cliente').innerText = cliente;
-        document.getElementById('ot-lote').innerText = lote;
+        document.getElementById('ot-lote').innerText = loteId;
         document.getElementById('ot-cant').innerText = cant;
         document.getElementById('ot-resultado').classList.remove('hidden');
+
+        alert("✅ Pedido registrado exitosamente y stock descontado de bodega.");
+        cargarLotesDisponibles(); // Refrescamos el listado
       }).catch(err => {
-        alert("Error al registrar en Firestore: " + err.message);
+        alert("Error al procesar la transacción: " + err);
       });
     }
 
