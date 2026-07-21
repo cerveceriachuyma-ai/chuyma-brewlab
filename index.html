@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chuyma BrewLab - Gestión de Pedidos y Laboratorio</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- HTML5 QR Code Scanner CDN -->
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans">
+
+  <!-- HEADER -->
+  <header class="bg-slate-800 border-b border-amber-600 p-4 text-center shadow-lg">
+    <h1 class="text-2xl font-bold tracking-wide text-amber-500">🍺 CHUYMA BREWLAB</h1>
+    <p class="text-xs text-slate-400">Sistema de Ventas, Trazabilidad y Bodega</p>
+  </header>
+
+  <!-- VISTA DE LOGIN -->
+  <div id="login-view" class="flex-1 flex items-center justify-center p-4">
+    <div class="bg-slate-800 p-6 rounded-2xl shadow-xl w-full max-w-sm border border-slate-700">
+      <h2 class="text-xl font-semibold mb-4 text-center text-amber-400">Acceso Controlado</h2>
+      <form id="login-form" class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold uppercase mb-1 text-slate-300">Correo Electrónico</label>
+          <input type="email" id="login-email" class="w-full bg-slate-900 border border-slate-700 rounded p-3 text-white focus:outline-none focus:border-amber-500" required>
+        </div>
+        <div>
+          <label class="block text-xs font-bold uppercase mb-1 text-slate-300">Contraseña</label>
+          <input type="password" id="login-password" class="w-full bg-slate-900 border border-slate-700 rounded p-3 text-white focus:outline-none focus:border-amber-500" required>
+        </div>
+        <button type="submit" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-3 rounded-lg shadow transition duration-200">
+          INGRESAR A PLANTA
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- PANEL PRINCIPAL (AUTENTICADO) -->
+  <div id="app-view" class="hidden flex-1 p-4 max-w-2xl mx-auto w-full space-y-6">
+
+    <!-- BARRA NAVEGACIÓN TABS -->
+    <div class="grid grid-cols-2 gap-2 bg-slate-800 p-1.5 rounded-xl border border-slate-700">
+      <button id="tab-pedidos-btn" onclick="switchTab('pedidos')" class="py-2.5 rounded-lg font-bold text-sm bg-amber-600 text-white shadow">
+        📦 Nuevo Pedido
+      </button>
+      <button id="tab-qr-btn" onclick="switchTab('qr')" class="py-2.5 rounded-lg font-bold text-sm bg-slate-700 text-slate-300">
+        📷 Escáner QR
+      </button>
+    </div>
+
+    <!-- SECCIÓN: NUEVO PEDIDO -->
+    <div id="sec-pedidos" class="bg-slate-800 p-5 rounded-2xl border border-slate-700 shadow-md space-y-4">
+      <h2 class="text-lg font-bold text-amber-400 border-b border-slate-700 pb-2">Registrar Nuevo Pedido</h2>
+      
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs font-bold text-slate-300 mb-1">Cliente / Destino</label>
+          <input type="text" id="ped-cliente" placeholder="Ej: Bar El Lúpulo" class="w-full bg-slate-900 border border-slate-700 rounded p-2.5 text-sm text-white focus:border-amber-500">
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-300 mb-1">Lote de Cerveza Disponible</label>
+          <select id="ped-lote" class="w-full bg-slate-900 border border-slate-700 rounded p-2.5 text-sm text-white focus:border-amber-500">
+            <!-- Carga dinámica desde Firestore -->
+            <option value="">Cargando lotes disponibles...</option>
+          </select>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-300 mb-1">Cantidad Unidades</label>
+            <input type="number" id="ped-cantidad" value="1" min="1" class="w-full bg-slate-900 border border-slate-700 rounded p-2.5 text-sm text-white focus:border-amber-500" oninput="calcularTotal()">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-300 mb-1">Precio Neto Unitario ($)</label>
+            <input type="number" id="ped-neto-unitario" value="1200" min="0" class="w-full bg-slate-900 border border-slate-700 rounded p-2.5 text-sm text-white focus:border-amber-500" oninput="calcularTotal()">
+          </div>
+        </div>
+      </div>
+
+      <!-- CÁLCULO EN TIEMPO REAL -->
+      <div class="bg-slate-900 p-4 rounded-xl border border-slate-700 space-y-1 text-sm font-mono">
+        <div class="flex justify-between text-slate-400"><span>Subtotal Neto:</span><span id="res-neto">$0</span></div>
+        <div class="flex justify-between text-slate-400"><span>ILA (20,5%):</span><span id="res-ila">$0</span></div>
+        <div class="flex justify-between text-slate-400"><span>IVA (19,0%):</span><span id="res-iva">$0</span></div>
+        <div class="flex justify-between text-amber-400 font-bold text-base border-t border-slate-800 pt-1 mt-1"><span>TOTAL BRUTO:</span><span id="res-bruto">$0</span></div>
+      </div>
+
+      <button onclick="generarPedido()" class="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-3 rounded-xl shadow transition duration-200">
+        CONFIRMAR PEDIDO Y GENERAR OT
+      </button>
+
+      <!-- VISTA ORDEN DE TRABAJO GENERADA -->
+      <div id="ot-resultado" class="hidden bg-white text-slate-900 p-4 rounded-xl font-mono text-xs space-y-2 border-2 border-dashed border-amber-500">
+        <h3 class="font-bold text-center border-b border-slate-300 pb-1 text-sm">ORDEN DE TRABAJO (OT) - BODEGA</h3>
+        <p><strong>CÓDIGO:</strong> <span id="ot-codigo"></span></p>
+        <p><strong>CLIENTE:</strong> <span id="ot-cliente"></span></p>
+        <p><strong>LOTE ASOCIADO:</strong> <span id="ot-lote"></span></p>
+        <p><strong>CANTIDAD:</strong> <span id="ot-cant"></span> unidades</p>
+        <div class="border-t border-slate-300 pt-2 text-center text-slate-500">
+          [ Formato Limpio de Bodega - Sin Precios ]
+        </div>
+      </div>
+    </div>
+
+    <!-- SECCIÓN: ESCÁNER QR -->
+    <div id="sec-qr" class="hidden bg-slate-800 p-5 rounded-2xl border border-slate-700 shadow-md space-y-4">
+      <h2 class="text-lg font-bold text-amber-400 border-b border-slate-700 pb-2">Control de Stock por QR</h2>
+      <div id="reader" class="bg-slate-900 rounded-xl overflow-hidden"></div>
+      <div id="qr-result" class="bg-slate-900 p-3 rounded-xl text-xs font-mono text-amber-300 border border-slate-700 hidden"></div>
+    </div>
+
+    <!-- BOTÓN DE CERRAR SESIÓN -->
+    <button onclick="logout()" class="w-full text-xs text-slate-400 hover:text-red-400 py-2 transition">
+      🔒 Cerrar Sesión de Planta
+    </button>
+  </div>
+
+  <script>
+    // ----------------------------------------------------------------
+    // 1. CONFIGURACIÓN FIREBASE (Remplaza con tus datos de la consola)
+    // ----------------------------------------------------------------
+    const firebaseConfig = {
+      apiKey: "TU_API_KEY",
+      authDomain: "TU_PROJECT_ID.firebaseapp.com",
+      projectId: "TU_PROJECT_ID",
+      storageBucket: "TU_PROJECT_ID.appspot.com",
+      messagingSenderId: "TU_MESSAGING_SENDER_ID",
+      appId: "TU_APP_ID"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    // ----------------------------------------------------------------
+    // 2. AUTENTICACIÓN
+    // ----------------------------------------------------------------
+    document.getElementById('login-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const email = document.getElementById('login-email').value;
+      const pass = document.getElementById('login-password').value;
+      
+      auth.signInWithEmailAndPassword(email, pass).catch(err => {
+        alert("Error de acceso: " + err.message);
+      });
+    });
+
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        document.getElementById('login-view').classList.add('hidden');
+        document.getElementById('app-view').classList.remove('hidden');
+        cargarLotesDisponibles();
+        calcularTotal();
+      } else {
+        document.getElementById('login-view').classList.remove('hidden');
+        document.getElementById('app-view').classList.add('hidden');
+      }
+    });
+
+    function logout() { auth.signOut(); }
+
+    // ----------------------------------------------------------------
+    // 3. LÓGICA DE NAVEGACIÓN TABS
+    // ----------------------------------------------------------------
+    function switchTab(tab) {
+      const secPed = document.getElementById('sec-pedidos');
+      const secQR = document.getElementById('sec-qr');
+      const btnPed = document.getElementById('tab-pedidos-btn');
+      const btnQR = document.getElementById('tab-qr-btn');
+
+      if (tab === 'pedidos') {
+        secPed.classList.remove('hidden');
+        secQR.classList.add('hidden');
+        btnPed.className = "py-2.5 rounded-lg font-bold text-sm bg-amber-600 text-white shadow";
+        btnQR.className = "py-2.5 rounded-lg font-bold text-sm bg-slate-700 text-slate-300";
+      } else {
+        secPed.classList.add('hidden');
+        secQR.classList.remove('hidden');
+        btnQR.className = "py-2.5 rounded-lg font-bold text-sm bg-amber-600 text-white shadow";
+        btnPed.className = "py-2.5 rounded-lg font-bold text-sm bg-slate-700 text-slate-300";
+        iniciarEscanerQR();
+      }
+    }
+
+    // ----------------------------------------------------------------
+    // 4. MOTOR DE CÁLCULO FINANCIERO Y PEDIDOS
+    // ----------------------------------------------------------------
+    function calcularTotal() {
+      const cant = parseFloat(document.getElementById('ped-cantidad').value) || 0;
+      const netoUnit = parseFloat(document.getElementById('ped-neto-unitario').value) || 0;
+
+      const subtotalNeto = cant * netoUnit;
+      const ila = subtotalNeto * 0.205;
+      const iva = subtotalNeto * 0.190;
+      const totalBruto = subtotalNeto + ila + iva;
+
+      document.getElementById('res-neto').innerText = `$${subtotalNeto.toLocaleString('es-CL')}`;
+      document.getElementById('res-ila').innerText = `$${Math.round(ila).toLocaleString('es-CL')}`;
+      document.getElementById('res-iva').innerText = `$${Math.round(iva).toLocaleString('es-CL')}`;
+      document.getElementById('res-bruto').innerText = `$${Math.round(totalBruto).toLocaleString('es-CL')}`;
+    }
+
+    function cargarLotesDisponibles() {
+      const select = document.getElementById('ped-lote');
+      db.collection('pedidos_y_lotes').get().then(snapshot => {
+        select.innerHTML = '';
+        if (snapshot.empty) {
+          select.innerHTML = '<option value="LOTE-DEMO-PA">PA-2026-04 (Pale Ale - Lote Demo)</option>';
+          return;
+        }
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          select.innerHTML += `<option value="${doc.id}">${doc.id} - ${data.nombre || 'Cerveza'}</option>`;
+        });
+      }).catch(() => {
+        select.innerHTML = '<option value="LOTE-PA-2026-04">PA-2026-04 (Pale Ale - Stock Disponible)</option>';
+      });
+    }
+
+    function generarPedido() {
+      const cliente = document.getElementById('ped-cliente').value;
+      const lote = document.getElementById('ped-lote').value;
+      const cant = document.getElementById('ped-cantidad').value;
+
+      if (!cliente) {
+        alert("Ingresa el nombre del cliente.");
+        return;
+      }
+
+      const idOT = `OT-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+
+      document.getElementById('ot-codigo').innerText = idOT;
+      document.getElementById('ot-cliente').innerText = cliente;
+      document.getElementById('ot-lote').innerText = lote;
+      document.getElementById('ot-cant').innerText = cant;
+
+      document.getElementById('ot-resultado').classList.remove('hidden');
+    }
+
+    // ----------------------------------------------------------------
+    // 5. ESCÁNER QR DE BODEGA
+    // ----------------------------------------------------------------
+    let html5QrcodeScanner;
+    function iniciarEscanerQR() {
+      if (!html5QrcodeScanner) {
+        html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
+        html5QrcodeScanner.render((decodedText) => {
+          const resDiv = document.getElementById('qr-result');
+          resDiv.innerText = `LOTE ESCANEADO: ${decodedText}`;
+          resDiv.classList.remove('hidden');
+        });
+      }
+    }
+  </script>
+</body>
+</html>
