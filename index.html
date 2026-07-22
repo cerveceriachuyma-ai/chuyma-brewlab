@@ -36,7 +36,7 @@
           <label class="block text-xs font-bold uppercase mb-1 text-slate-300">Contraseña</label>
           <input type="password" id="login-password" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:border-amber-500" required>
         </div>
-        <button type="submit" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-3 rounded-xl shadow transition duration-200">
+        <button type="submit" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-3 rounded-xl shadow transition duration-200 cursor-pointer">
           INGRESAR A PLANTA
         </button>
       </form>
@@ -48,15 +48,15 @@
 
     <!-- SELECTOR DE NAVEGACIÓN (TABS) -->
     <div class="grid grid-cols-2 gap-2 bg-slate-800 p-1.5 rounded-xl border border-slate-700">
-      <button id="tab-pedidos-btn" onclick="switchTab('pedidos')" class="py-2.5 rounded-lg font-bold text-sm bg-amber-600 text-white shadow">
+      <button id="tab-pedidos-btn" onclick="switchTab('pedidos')" class="py-2.5 rounded-lg font-bold text-sm bg-amber-600 text-white shadow cursor-pointer">
         📦 Nuevo Pedido
       </button>
-      <button id="tab-qr-btn" onclick="switchTab('qr')" class="py-2.5 rounded-lg font-bold text-sm bg-slate-700 text-slate-300">
+      <button id="tab-qr-btn" onclick="switchTab('qr')" class="py-2.5 rounded-lg font-bold text-sm bg-slate-700 text-slate-300 cursor-pointer">
         📷 Escáner QR
       </button>
     </div>
 
-    <!-- MÓDULO 1: PEDIDOS Y CÁLCULO DE IMPUESTOS (PRECIO FINAL CON IVA+ILA) -->
+    <!-- MÓDULO 1: PEDIDOS Y CÁLCULO DE IMPUESTOS (PRECIO AUTO-EXTRAÍDO DE BODEGA/CAVA) -->
     <div id="sec-pedidos" class="bg-slate-800 p-5 rounded-2xl border border-slate-700 shadow-md space-y-4">
       <h2 class="text-lg font-bold text-amber-400 border-b border-slate-700 pb-2">Registrar Pedido de Cerveza</h2>
       
@@ -67,7 +67,7 @@
         </div>
 
         <div>
-          <label class="block text-xs font-bold text-slate-300 mb-1">Lote / Producto (Desde Inventario)</label>
+          <label class="block text-xs font-bold text-slate-300 mb-1">Cerveza / Lote Disponible (Desde Cava/Inventario)</label>
           <select id="ped-lote" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:border-amber-500" onchange="actualizarPrecioDesdeInventario()">
             <option value="">Cargando lotes desde inventariochuyma...</option>
           </select>
@@ -79,8 +79,8 @@
             <input type="number" id="ped-cantidad" value="1" min="1" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:border-amber-500" oninput="calcularTotal()">
           </div>
           <div>
-            <label class="block text-xs font-bold text-slate-300 mb-1">Precio Final Unitario ($ Incl. IVA+ILA)</label>
-            <input type="number" id="ped-bruto-unitario" value="1674" min="0" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:border-amber-500" oninput="calcularTotal()">
+            <label class="block text-xs font-bold text-slate-300 mb-1">Precio Unitario ($ Bruto Fijo)</label>
+            <input type="number" id="ped-bruto-unitario" value="0" readonly class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-sm text-amber-500 font-bold focus:outline-none cursor-not-allowed" placeholder="Auto-extraído">
           </div>
         </div>
       </div>
@@ -93,7 +93,7 @@
         <div class="flex justify-between text-amber-400 font-bold text-base border-t border-slate-800 pt-1 mt-1"><span>TOTAL BRUTO A COBRAR:</span><span id="res-bruto">$0</span></div>
       </div>
 
-      <button onclick="generarPedido()" class="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-3 rounded-xl shadow transition duration-200">
+      <button id="btn-generar-pedido" onclick="generarPedido()" class="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-3 rounded-xl shadow transition duration-200 cursor-pointer">
         GENERAR OT Y REGISTRAR EN FIRESTORE
       </button>
 
@@ -118,7 +118,7 @@
     </div>
 
     <!-- BOTÓN DE CIERRE DE SESIÓN -->
-    <button onclick="logout()" class="w-full text-xs text-slate-400 hover:text-red-400 py-2 transition text-center block">
+    <button onclick="logout()" class="w-full text-xs text-slate-400 hover:text-red-400 py-2 transition text-center block cursor-pointer">
       🔒 Cerrar Sesión de Planta
     </button>
   </div>
@@ -162,7 +162,6 @@
         document.getElementById('login-view').classList.add('hidden');
         document.getElementById('app-view').classList.remove('hidden');
         cargarLotesDisponibles();
-        calcularTotal();
       } else {
         document.getElementById('login-view').classList.remove('hidden');
         document.getElementById('app-view').classList.add('hidden');
@@ -183,13 +182,13 @@
       if (tab === 'pedidos') {
         secPed.classList.remove('hidden');
         secQR.classList.add('hidden');
-        btnPed.className = "py-2.5 rounded-lg font-bold text-sm bg-amber-600 text-white shadow";
-        btnQR.className = "py-2.5 rounded-lg font-bold text-sm bg-slate-700 text-slate-300";
+        btnPed.className = "py-2.5 rounded-lg font-bold text-sm bg-amber-600 text-white shadow cursor-pointer";
+        btnQR.className = "py-2.5 rounded-lg font-bold text-sm bg-slate-700 text-slate-300 cursor-pointer";
       } else {
         secPed.classList.add('hidden');
         secQR.classList.remove('hidden');
-        btnQR.className = "py-2.5 rounded-lg font-bold text-sm bg-amber-600 text-white shadow";
-        btnPed.className = "py-2.5 rounded-lg font-bold text-sm bg-slate-700 text-slate-300";
+        btnQR.className = "py-2.5 rounded-lg font-bold text-sm bg-amber-600 text-white shadow cursor-pointer";
+        btnPed.className = "py-2.5 rounded-lg font-bold text-sm bg-slate-700 text-slate-300 cursor-pointer";
         iniciarEscanerQR();
       }
     }
@@ -203,8 +202,7 @@
 
       const totalBruto = cant * brutoUnitario;
       
-      // Desglose inverso considerando 20.5% ILA y 19.0% IVA sobre el neto
-      // Factor Total = 1 + 0.205 + 0.190 = 1.395
+      // Factor Total = 1 + 0.205 (ILA) + 0.190 (IVA) = 1.395
       const subtotalNeto = totalBruto / 1.395;
       const ila = subtotalNeto * 0.205;
       const iva = subtotalNeto * 0.190;
@@ -217,6 +215,7 @@
 
     function cargarLotesDisponibles() {
       const select = document.getElementById('ped-lote');
+      const btnGen = document.getElementById('btn-generar-pedido');
       lotesStockMap = {};
       lotesPrecioMap = {};
 
@@ -227,37 +226,48 @@
         snapshot.forEach(doc => {
           const data = doc.data();
           const stockActual = data.stock !== undefined ? data.stock : (data.cantidad !== undefined ? data.cantidad : 0);
-          const precioFinal = data.precioFinal || data.precioBruto || 0;
+          const precioFinal = data.precioFinal || data.precioBruto || data.precio || 0;
 
+          // Filtramos solo elementos con stock disponible > 0
           if (stockActual > 0) {
             lotesStockMap[doc.id] = stockActual;
             lotesPrecioMap[doc.id] = precioFinal;
-            select.innerHTML += `<option value="${doc.id}">${doc.id} - ${data.nombre || 'Cerveza'} (Stock: ${stockActual} un.)</option>`;
+            select.innerHTML += `<option value="${doc.id}">${data.nombre || doc.id} (Stock: ${stockActual} un.)</option>`;
             lotesValidos++;
           }
         });
 
         if (lotesValidos === 0) {
-          select.innerHTML = '<option value="">⚠️ No hay stock disponible en planta</option>';
+          select.innerHTML = '<option value="">⚠️ No hay stock/cervezas disponibles en cava</option>';
+          document.getElementById('ped-bruto-unitario').value = 0;
+          btnGen.disabled = true;
+          btnGen.classList.add('opacity-50', 'cursor-not-allowed');
+          calcularTotal();
         } else {
+          btnGen.disabled = false;
+          btnGen.classList.remove('opacity-50', 'cursor-not-allowed');
           actualizarPrecioDesdeInventario();
         }
       }).catch(err => {
         console.error("Error cargando inventario:", err);
-        select.innerHTML = '<option value="">⚠️ No hay stock disponible en planta</option>';
+        select.innerHTML = '<option value="">⚠️ Error cargando el inventario</option>';
       });
     }
 
     function actualizarPrecioDesdeInventario() {
       const loteId = document.getElementById('ped-lote').value;
-      if (loteId && lotesPrecioMap[loteId] > 0) {
-        document.getElementById('ped-bruto-unitario').value = lotesPrecioMap[loteId];
-        calcularTotal();
+      const inputPrecio = document.getElementById('ped-bruto-unitario');
+      
+      if (loteId && lotesPrecioMap[loteId] !== undefined) {
+        inputPrecio.value = lotesPrecioMap[loteId];
+      } else {
+        inputPrecio.value = 0;
       }
+      calcularTotal();
     }
 
     function generarPedido() {
-      const cliente = document.getElementById('ped-cliente').value;
+      const cliente = document.getElementById('ped-cliente').value.trim();
       const loteId = document.getElementById('ped-lote').value;
       const cant = parseFloat(document.getElementById('ped-cantidad').value) || 0;
       const brutoUnitario = parseFloat(document.getElementById('ped-bruto-unitario').value) || 0;
@@ -272,9 +282,14 @@
         return;
       }
 
+      if (brutoUnitario <= 0) {
+        alert("⚠️ El producto seleccionado no tiene un precio válido asignado en el inventario.");
+        return;
+      }
+
       const stockDisponible = lotesStockMap[loteId];
       if (cant > stockDisponible) {
-        alert(`⚠️ Stock insuficiente en bodega. Intentas pedir ${cant} unidades, pero solo quedan ${stockDisponible} disponibles.`);
+        alert(`⚠️ Stock insuficiente en cava. Intentas pedir ${cant} unidades, pero solo quedan ${stockDisponible} disponibles.`);
         return;
       }
 
@@ -331,7 +346,7 @@
         document.getElementById('ot-cant').innerText = cant;
         document.getElementById('ot-resultado').classList.remove('hidden');
 
-        alert("✅ Pedido registrado exitosamente y stock descontado de bodega.");
+        alert("✅ Pedido registrado exitosamente y stock descontado de la cava.");
         cargarLotesDisponibles();
       }).catch(err => {
         alert("Error al procesar la transacción: " + err);
