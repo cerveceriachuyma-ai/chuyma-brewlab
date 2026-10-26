@@ -1,288 +1,461 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chuyma BrewLab - Gestión de Pedidos y OT</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Firebase SDKs -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chuyma Ventas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;700;800&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<style>
+:root{--ink:#221C15;--muted:#6E655A;--hint:#9A9187;--line:#E8E2D8;--bg:#FFFFFF;--soft:#F8F5F0;--amber:#B4690E;--amber-d:#8A4F08;--amber-t:#FBF0DF;--red:#B42318;--red-t:#FDECEA;--green:#2F7A4A;--green-t:#E8F4EC;--warn:#8A5A00;--warn-t:#FFF4D6;--r:10px;--font:'Schibsted Grotesk',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased}
+body{padding-bottom:env(safe-area-inset-bottom,0)}
+[hidden]{display:none!important}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+input,select,textarea{width:100%;border:1px solid var(--line);background:#fff;border-radius:var(--r);padding:10px 12px;min-height:44px}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--amber);box-shadow:0 0 0 3px var(--amber-t)}
+input[readonly]{background:var(--soft);color:var(--muted)}
+label{display:block;font-size:13px;color:var(--muted);margin:0 0 4px}
+.btn{display:inline-flex;align-items:center;gap:6px;justify-content:center;border:1px solid var(--line);background:#fff;border-radius:var(--r);padding:9px 14px;min-height:42px;font-weight:500;font-size:15px;white-space:nowrap}
+.btn:hover{background:var(--soft)}
+.btn-p{background:var(--amber);border-color:var(--amber);color:#fff}
+.btn-p:hover{background:var(--amber-d)}
+.btn-a{background:var(--amber-t);border:2px solid var(--amber);color:var(--amber-d);font-weight:700}
+.btn-a:hover{background:#F6E2C2}
+.btn-x{color:var(--red);border-color:#F2C9C4}
+.btn-x:hover{background:var(--red-t)}
+.btn-link{border:0;background:none;padding:6px 0;color:var(--muted);font-weight:500;min-height:0}
+.wrap{max-width:980px;margin:0 auto;padding:16px}
+.marca{font-weight:800;letter-spacing:-.03em;color:var(--amber);margin:0;line-height:1}
+.sub{font-size:13px;color:var(--muted);margin:2px 0 0}
+.ver{font-size:13px;font-weight:500;letter-spacing:0;color:var(--muted);background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:1px 7px;vertical-align:middle;margin-left:8px}
+.demo{background:var(--warn-t);color:var(--warn);font-size:14px;padding:8px 16px;text-align:center}
+
+#login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+#login form{width:100%;max-width:380px}
+#login .marca{font-size:56px}
+#login .campo{margin-top:16px}
+.err{color:var(--red);font-size:14px;margin:10px 0 0}
+
+header.top{border-bottom:1px solid var(--line);background:#fff;position:sticky;top:0;z-index:20;padding-top:env(safe-area-inset-top,0)}
+header.top .wrap{display:flex;justify-content:space-between;align-items:center;gap:12px;padding-top:12px;padding-bottom:12px;flex-wrap:wrap}
+header.top .marca{font-size:30px}
+.acciones{display:flex;gap:8px;flex-wrap:wrap}
+.barra{display:flex;gap:8px;margin-bottom:12px}
+.barra input{flex:1}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:14px;scrollbar-width:none}
+.chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 14px;font-size:14px;color:var(--muted);white-space:nowrap}
+.chip.on{background:var(--amber-t);border-color:var(--amber-t);color:var(--amber-d);font-weight:500}
+.lista{border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.fila{display:flex;width:100%;justify-content:space-between;align-items:center;gap:12px;padding:12px 14px;background:#fff;border:0;border-bottom:1px solid var(--line);text-align:left}
+.fila:last-child{border-bottom:0}
+.fila:hover{background:var(--soft)}
+.fila strong{display:block;font-weight:500}
+.fila small{color:var(--hint);font-size:13px}
+.fila .der{text-align:right;flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:3px}
+.cant{font-weight:700;font-variant-numeric:tabular-nums}
+.rojo{color:var(--red)}
+.tag{font-size:12px;padding:2px 8px;border-radius:6px;white-space:nowrap}
+.t-danger{background:var(--red-t);color:var(--red)}
+.t-warn{background:var(--warn-t);color:var(--warn)}
+.t-ok{background:var(--green-t);color:var(--green)}
+.vacio{padding:40px 16px;text-align:center;color:var(--muted)}
+
+.cab{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin:4px 0 16px}
+.cab h2{font-size:28px;letter-spacing:-.02em;margin:2px 0 0;line-height:1.15}
+.mono{font-family:ui-monospace,Menlo,monospace;font-size:13px}
+.alertas{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.metricas{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:18px}
+.met{background:var(--soft);border-radius:var(--r);padding:12px 14px}
+.met span{font-size:13px;color:var(--muted)}
+.met b{display:block;font-size:24px;font-weight:700;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+.met small{color:var(--hint);font-size:12px}
+.datos{display:grid;grid-template-columns:minmax(120px,auto) 1fr;gap:6px 18px;font-size:15px;padding:14px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin-bottom:18px}
+.datos dt{color:var(--muted)}
+.datos dd{margin:0}
+.sec{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.sec h3{margin:0;font-size:18px}
+.mov{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);font-size:15px}
+.mov small{display:block;color:var(--hint);font-size:13px}
+.mov .der{text-align:right;font-variant-numeric:tabular-nums;flex-shrink:0}
+.mas{color:var(--green)}
+.doc{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);font-size:15px}
+.doc small{display:block;color:var(--hint);font-size:13px}
+.doc .acciones{flex-shrink:0}
+.bloque{margin-bottom:22px}
+.check{display:flex;gap:10px;align-items:center;font-size:15px;color:var(--ink);margin:0}
+.check input{width:20px;height:20px;min-height:0;accent-color:var(--amber)}
+.checks{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px}
+.tabla tr.sub td{background:var(--soft);font-weight:500}
+.tabla tr.tot td{font-weight:700;border-top:2px solid var(--ink)}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+fieldset{border:1px solid var(--line);border-radius:var(--r);padding:14px;margin:0 0 14px}
+legend{font-weight:500;padding:0 6px}
+.nota{font-size:13px;color:var(--muted);margin:6px 0 0}
+.costo-prev{background:var(--amber-t);color:var(--amber-d);border-radius:var(--r);padding:10px 12px;font-size:14px;margin-top:12px}
+.pie-form{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:8px}
+
+.tabla{width:100%;border-collapse:collapse;font-size:14px}
+.tabla th{text-align:left;font-weight:500;color:var(--muted);background:var(--soft);padding:8px 10px;font-size:13px}
+.tabla td{padding:8px 10px;border-top:1px solid var(--line);vertical-align:top}
+.tabla .n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);margin-bottom:16px}
+.totales{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.solo-print{display:none}
+
+dialog{border:0;border-radius:14px;padding:0;width:min(440px,calc(100% - 24px));color:var(--ink)}
+dialog::backdrop{background:rgba(34,28,21,.4)}
+#dlg-env{width:min(640px,calc(100% - 24px))}
+.env-fila{display:grid;grid-template-columns:1fr 110px;gap:8px;align-items:end;margin-top:10px}
+.env-fila small{grid-column:1/-1;color:var(--muted)}
+.lote-cod{font-family:ui-monospace,Menlo,monospace;font-weight:700;letter-spacing:.02em}
+dialog form{padding:20px}
+dialog h3{margin:0 0 4px;font-size:20px}
+dialog .campo{margin-top:12px}
+dialog .pie{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
+
+#scan{max-width:420px;margin:0 auto 16px;border:1px solid var(--line);border-radius:var(--r);padding:12px}
+#lector{border-radius:8px;overflow:hidden}
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0));transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:var(--r);font-size:14px;z-index:50;max-width:calc(100% - 32px)}
+#et-tmp{position:absolute;left:-9999px;top:0}
+#x-et-canvas{width:100%;max-width:340px;height:auto;display:block;margin:12px auto 0;border:1.5px solid #222;border-radius:6px;background:#fff}
+
+@media (max-width:600px){
+ header.top .marca{font-size:26px}
+ .acciones .btn{padding:8px 10px;font-size:14px}
+ .cab h2{font-size:24px}
+}
+@media print{
+ @page{margin:14mm}
+ .no-print,header.top,.demo,#toast{display:none!important}
+ body{font-size:12px}
+ .solo-print{display:block}
+ .scroll{border:0;overflow:visible}
+ .tabla th{background:#eee}
+}
+
+a{color:var(--amber-d)}
+.btn.on{background:var(--amber-t);border-color:var(--amber-t);color:var(--amber-d)}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.despacho{border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;margin-bottom:8px}
+.despacho p{margin:0}
+.d-dir{font-size:20px;font-weight:700;line-height:1.25}
+.d-com{font-size:22px;font-weight:800;letter-spacing:.01em}
+.d-ind{margin-top:8px!important;font-size:14px;border:1px solid var(--line);border-radius:6px;padding:4px 8px;display:inline-block}
+</style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen p-4 md:p-8 font-sans">
+<body>
+<div id="aviso-demo" class="demo" hidden>Vista previa con datos de ejemplo. No está conectada a tu Firebase.</div>
 
-    <div class="max-w-4xl mx-auto space-y-6">
-        <!-- Header -->
-        <header class="border-b border-slate-800 pb-4 flex justify-between items-center">
-            <div>
-                <h1 class="text-2xl font-bold text-amber-500">🍺 Chuyma BrewLab</h1>
-                <p class="text-xs text-slate-400">Generación de Orden de Trabajo (OT) y Trazabilidad</p>
-            </div>
-            <span class="bg-amber-500/10 text-amber-400 text-xs px-3 py-1 rounded-full border border-amber-500/20">Módulo OT</span>
-        </header>
+<section id="login" hidden>
+ <form id="form-login" novalidate>
+  <h1 class="marca">Chuyma</h1>
+  <p class="sub">Ventas · <span class="app-ver-txt"></span></p>
+  <div class="campo"><label for="l-email">Correo</label><input id="l-email" type="email" autocomplete="username" required></div>
+  <div class="campo"><label for="l-pass">Contraseña</label><input id="l-pass" type="password" autocomplete="current-password" required></div>
+  <button class="btn btn-p" type="submit" style="width:100%;margin-top:18px">Entrar</button>
+  <p id="l-err" class="err" hidden></p>
+ </form>
+</section>
 
-        <!-- Formulario Principal -->
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
-            
-            <!-- Sección 1: Cliente y Despacho -->
-            <div>
-                <h2 class="text-sm font-semibold text-amber-400 uppercase tracking-wider mb-4">1. Datos del Cliente y Despacho</h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs text-slate-400 mb-1">Nombre / Razón Social *</label>
-                        <input type="text" id="cliente" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm focus:border-amber-500 focus:outline-none" placeholder="Ej: Bar Central">
-                    </div>
-                    <div>
-                        <label class="block text-xs text-slate-400 mb-1">RUT Cliente *</label>
-                        <input type="text" id="rutCliente" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm focus:border-amber-500 focus:outline-none" placeholder="Ej: 77.123.456-7">
-                    </div>
-                    <div>
-                        <label class="block text-xs text-slate-400 mb-1">Dirección de Despacho *</label>
-                        <input type="text" id="direccionDespacho" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm focus:border-amber-500 focus:outline-none" placeholder="Ej: Av. Providencia 1234">
-                    </div>
-                    <div>
-                        <label class="block text-xs text-slate-400 mb-1">Forma de Pago *</label>
-                        <select id="formaPago" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm focus:border-amber-500 focus:outline-none">
-                            <option value="Transferencia">Transferencia Electrónica</option>
-                            <option value="Efectivo">Efectivo</option>
-                            <option value="Credito30">Crédito 30 días</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
+<div id="app" hidden>
+ <header class="top">
+  <div class="wrap">
+   <div><p class="marca">Chuyma ventas<span class="ver app-ver"></span></p><p id="resumen" class="sub"></p></div>
+   <div class="acciones">
+    <button class="btn" type="button" disabled title="Etapa 2">Pedidos</button>
+    <button class="btn on" id="b-clientes" type="button">Clientes</button>
+    <button class="btn" type="button" disabled title="Etapa 5">Resumen</button>
+    <button class="btn btn-link" id="b-salir" type="button">Salir</button>
+   </div>
+  </div>
+ </header>
 
-            <hr class="border-slate-800">
+ <main class="wrap">
 
-            <!-- Sección 2: Selección de Producto y FIFO -->
-            <div>
-                <h2 class="text-sm font-semibold text-amber-400 uppercase tracking-wider mb-4">2. Selección de Cerveza (Cava)</h2>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div class="md:col-span-2">
-                        <label class="block text-xs text-slate-400 mb-1">Seleccionar Lote / Cerveza Disponible *</label>
-                        <select id="selectCava" onchange="actualizarDetallesLote()" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm focus:border-amber-500 focus:outline-none">
-                            <option value="">Cargando cava...</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs text-slate-400 mb-1">Cantidad a Despachar *</label>
-                        <input type="number" id="cantidad" oninput="calcularTotal()" min="1" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm focus:border-amber-500 focus:outline-none" placeholder="0">
-                    </div>
-                </div>
+  <section id="v-lista">
+   <div class="cab"><div><h2>Clientes</h2></div><button class="btn btn-p" id="b-nuevo" type="button">Nuevo cliente</button></div>
+   <div class="barra"><input id="buscar" type="search" placeholder="Buscar por nombre, RUT, comuna o teléfono" aria-label="Buscar cliente"></div>
+   <div class="chips" id="chips"></div>
+   <div class="lista" id="lista"></div>
+  </section>
 
-                <!-- Banner Alerta FIFO -->
-                <div id="alertaFIFO" class="hidden mt-3 p-3 rounded-lg text-xs font-mono bg-amber-500/10 border border-amber-500/30 text-amber-300"></div>
-            </div>
+  <section id="v-perfil" hidden></section>
 
-            <hr class="border-slate-800">
-
-            <!-- Sección 3: Desglose Contable (Solo Lectura) -->
-            <div>
-                <h2 class="text-sm font-semibold text-amber-400 uppercase tracking-wider mb-4">3. Desglose Impuestos y Total</h2>
-                <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 grid grid-cols-2 md:grid-cols-5 gap-3 text-center">
-                    <div>
-                        <span class="block text-[10px] text-slate-500 uppercase">Precio Unit. Bruto</span>
-                        <span id="lblPrecioUnit" class="text-sm font-bold text-slate-300">$0</span>
-                    </div>
-                    <div>
-                        <span class="block text-[10px] text-slate-500 uppercase">Neto</span>
-                        <span id="lblNeto" class="text-sm font-bold text-slate-300">$0</span>
-                    </div>
-                    <div>
-                        <span class="block text-[10px] text-slate-500 uppercase">ILA (28%)</span>
-                        <span id="lblILA" class="text-sm font-bold text-amber-400">$0</span>
-                    </div>
-                    <div>
-                        <span class="block text-[10px] text-slate-500 uppercase">IVA (19%)</span>
-                        <span id="lblIVA" class="text-sm font-bold text-slate-300">$0</span>
-                    </div>
-                    <div class="col-span-2 md:col-span-1 bg-amber-500/10 rounded-lg p-1 border border-amber-500/20">
-                        <span class="block text-[10px] text-amber-400 uppercase font-bold">Total Bruto</span>
-                        <span id="lblTotal" class="text-lg font-black text-amber-400">$0</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Botón Acción -->
-            <button onclick="generarPedido()" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-3 rounded-xl transition duration-200">
-                🚀 Generar Orden de Trabajo y Descuenta Cava
-            </button>
-        </div>
+  <section id="v-form" hidden>
+   <form id="form-cli" novalidate>
+    <div class="cab"><div><button type="button" class="btn-link" data-volver>Volver</button><h2 id="f-titulo">Nuevo cliente</h2></div></div>
+    <fieldset><legend>Cliente</legend><div class="grid">
+     <div><label for="f-nombre">Nombre o razón social</label><input id="f-nombre" placeholder="Almacén El Roble" required></div>
+     <div><label for="f-tipo">Tipo</label><select id="f-tipo"><option value="persona">Persona</option><option value="empresa">Empresa</option></select></div>
+     <div><label for="f-rut">RUT</label><input id="f-rut" placeholder="12.345.678-9" autocomplete="off"><p class="nota" id="f-rut-nota">Necesario para factura. No se imprime en la etiqueta.</p></div>
+     <div id="f-giro-box"><label for="f-giro">Giro</label><input id="f-giro" placeholder="Venta de abarrotes"><p class="nota">Lo pide la factura.</p></div>
+     <div><label for="f-contacto">Persona de contacto</label><input id="f-contacto" placeholder="Opcional"></div>
+     <div><label for="f-tel">Teléfono</label><input id="f-tel" type="tel" inputmode="tel" placeholder="+56 9 1234 5678"></div>
+     <div><label for="f-email">Correo</label><input id="f-email" type="email" inputmode="email" placeholder="Opcional"></div>
+    </div></fieldset>
+    <fieldset><legend>Despacho</legend><div class="grid">
+     <div style="grid-column:1/-1"><label for="f-dir">Dirección</label><input id="f-dir" placeholder="Calle, número, depto."></div>
+     <div><label for="f-comuna">Comuna</label><input id="f-comuna" list="comunas" placeholder="Paine"><datalist id="comunas"></datalist></div>
+     <div><label for="f-region">Región</label><select id="f-region"></select></div>
+     <div style="grid-column:1/-1"><label for="f-ind">Indicaciones para la entrega</label><input id="f-ind" placeholder="Ej.: portón verde, dejar en conserjería"></div>
+    </div><p class="nota">Dirección, comuna, región y teléfono son los datos de la etiqueta de despacho. Si el cliente siempre retira, puedes dejarlos en blanco.</p></fieldset>
+    <fieldset><legend>Preferencias</legend><div class="grid">
+     <div><label for="f-pago">Forma de pago habitual</label><select id="f-pago"><option>Transferencia</option><option>Efectivo</option><option>Crédito 30 días</option><option>Tarjeta</option></select></div>
+     <div><label for="f-doc">Documento habitual</label><select id="f-doc"><option>Boleta</option><option>Factura</option></select></div>
+     <div><label for="f-entrega">Entrega habitual</label><select id="f-entrega"><option>Retira</option><option>Envío pagado</option><option>Por pagar</option></select></div>
     </div>
+    <div style="margin-top:12px"><label for="f-nota">Notas</label><textarea id="f-nota" rows="2" placeholder="Ej.: prefiere IPA; pedir con 3 días de anticipación"></textarea></div></fieldset>
+    <p id="f-err" class="err" hidden></p>
+    <div class="pie-form">
+     <button type="button" class="btn btn-x" id="f-archivar" hidden>Archivar cliente</button>
+     <span></span>
+     <div class="acciones"><button type="button" class="btn" data-volver>Cancelar</button><button type="submit" class="btn btn-p" id="f-guardar">Guardar</button></div>
+    </div>
+   </form>
+  </section>
 
-    <script>
-        // Configuración Firebase (Reemplaza con tus llaves si aplica)
-        const firebaseConfig = {
-            apiKey: "TU_API_KEY",
-            authDomain: "TU_PROJECT.firebaseapp.com",
-            projectId: "TU_PROJECT_ID",
-            storageBucket: "TU_PROJECT.appspot.com",
-            messagingSenderId: "SENDER_ID",
-            appId: "APP_ID"
-        };
-        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
+ </main>
+</div>
 
-        let cavaProductos = [];
-        let loteRecomendadoFIFO = "";
+<dialog id="dlg-pass">
+ <form id="form-pass" method="dialog" novalidate>
+  <h3>Confirma que eres tú</h3>
+  <p id="pw-accion" class="nota"></p>
+  <input type="text" id="pw-user" autocomplete="username" hidden>
+  <div class="campo"><label for="pw-input">Contraseña</label><input id="pw-input" type="password" autocomplete="current-password" required></div>
+  <p class="nota">Vale por 10 minutos.</p>
+  <p id="pw-err" class="err" hidden></p>
+  <div class="pie"><button type="button" class="btn" id="pw-cancelar">Cancelar</button><button type="submit" class="btn btn-p" id="pw-ok">Confirmar</button></div>
+ </form>
+</dialog>
+<div id="toast" hidden></div>
 
-        // Cargar inventario de Cava al iniciar
-        window.addEventListener('DOMContentLoaded', cargarCava);
+<script>
+var APP_VERSION = "v0.1";
+/* Chuyma Ventas · etapa 1: ficha de clientes.
+   Usa el mismo proyecto de Firebase que la Bodega. Colección nueva: "clientes".
+   Los clientes no se borran: se archivan (los documentos tributarios se guardan 6 años). */
+var FIREBASE_CONFIG = {
+  apiKey: "AIzaSyBSaIzbcFiyTF1zy9_9Z97ZSPfL322xO24",
+  authDomain: "inventariochuyma-da052.firebaseapp.com",
+  projectId: "inventariochuyma-da052",
+  storageBucket: "inventariochuyma-da052.firebasestorage.app",
+  messagingSenderId: "677439195293",
+  appId: "1:677439195293:web:50b624de9e0c877c89ec74"
+};
+var REGIONES=['Arica y Parinacota','Tarapacá','Antofagasta','Atacama','Coquimbo','Valparaíso','Metropolitana de Santiago','Libertador General Bernardo O\'Higgins','Maule','Ñuble','Biobío','La Araucanía','Los Ríos','Los Lagos','Aysén del General Carlos Ibáñez del Campo','Magallanes y de la Antártica Chilena'];
+var REGION_DEF='Metropolitana de Santiago';
+/* comunas de la Región Metropolitana como sugerencia; se puede escribir cualquier otra */
+var COMUNAS_RM=['Alhué','Buin','Calera de Tango','Cerrillos','Cerro Navia','Colina','Conchalí','Curacaví','El Bosque','El Monte','Estación Central','Huechuraba','Independencia','Isla de Maipo','La Cisterna','La Florida','La Granja','La Pintana','La Reina','Lampa','Las Condes','Lo Barnechea','Lo Espejo','Lo Prado','Macul','Maipú','María Pinto','Melipilla','Ñuñoa','Padre Hurtado','Paine','Pedro Aguirre Cerda','Peñaflor','Peñalolén','Pirque','Providencia','Pudahuel','Puente Alto','Quilicura','Quinta Normal','Recoleta','Renca','San Bernardo','San Joaquín','San José de Maipo','San Miguel','San Pedro','San Ramón','Santiago','Talagante','Tiltil','Vitacura'];
 
-        function cargarCava() {
-            db.collection('inventariochuyma').get().then(snapshot => {
-                cavaProductos = [];
-                snapshot.forEach(doc => {
-                    const data = doc.data();
-                    if (data.stock > 0) {
-                        cavaProductos.push({ id: doc.id, ...data });
-                    }
-                });
+function $(s){return document.querySelector(s)}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function hoy(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function toast(t){var el=$('#toast');el.textContent=t;el.hidden=false;clearTimeout(toast._t);toast._t=setTimeout(function(){el.hidden=true},3500)}
+function sinTildes(s){return String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase()}
 
-                // Ordenar por FIFO (Fecha de ingreso más antigua primero)
-                cavaProductos.sort((a, b) => {
-                    const fechaA = a.fechaIngreso ? a.fechaIngreso.toDate() : new Date(0);
-                    const fechaB = b.fechaIngreso ? b.fechaIngreso.toDate() : new Date(0);
-                    return fechaA - fechaB;
-                });
+/* ---------- RUT: limpiar, validar (módulo 11) y formatear ---------- */
+function rutLimpio(r){return String(r||'').replace(/[^0-9kK]/g,'').toUpperCase()}
+function rutValido(r){var c=rutLimpio(r);if(c.length<2)return false;var cuerpo=c.slice(0,-1),dv=c.slice(-1),s=0,m=2;
+  if(!/^\d+$/.test(cuerpo))return false;
+  for(var i=cuerpo.length-1;i>=0;i--){s+=parseInt(cuerpo[i],10)*m;m=m===7?2:m+1}
+  var e=11-(s%11),esp=e===11?'0':e===10?'K':String(e);return esp===dv}
+function rutFormato(r){var c=rutLimpio(r);if(c.length<2)return c;var cuerpo=c.slice(0,-1),dv=c.slice(-1);return cuerpo.replace(/\B(?=(\d{3})+(?!\d))/g,'.')+'-'+dv}
+/* ---------- Teléfono chileno: +56 9 1234 5678 ---------- */
+function telFormato(t){var d=String(t||'').replace(/\D/g,'');if(d.indexOf('56')===0&&d.length>9)d=d.slice(2);
+  if(d.length===9&&d[0]==='9')return '+56 9 '+d.slice(1,5)+' '+d.slice(5);
+  if(d.length===9)return '+56 '+d.slice(0,1)+' '+d.slice(1,5)+' '+d.slice(5);
+  return String(t||'').trim()}
+function telValido(t){var d=String(t||'').replace(/\D/g,'');if(d.indexOf('56')===0)d=d.slice(2);return d.length===9}
+/* datos que faltan para la etiqueta; solo importan si el cliente recibe envíos */
+function necesitaDespacho(c){return c.entrega&&c.entrega!=='Retira'}
+function alertaDespacho(c){return necesitaDespacho(c)&&faltaDespacho(c).length>0}
+function faltaDespacho(c){var f=[];if(!c.direccion)f.push('dirección');if(!c.comuna)f.push('comuna');if(!c.region)f.push('región');if(!c.telefono)f.push('teléfono');return f}
 
-                if (cavaProductos.length > 0) {
-                    loteRecomendadoFIFO = cavaProductos[0].idLoteBrewfather || cavaProductos[0].id;
-                }
+/* ---------- Capa de datos: Firebase ---------- */
+function crearApiFirebase(){
+  firebase.initializeApp(FIREBASE_CONFIG);
+  var auth=firebase.auth(),db=firebase.firestore();
+  db.enablePersistence({synchronizeTabs:true}).catch(function(){});
+  var CLI=db.collection('clientes'),FV=firebase.firestore.FieldValue;
+  return {
+    onAuth:function(cb){auth.onAuthStateChanged(cb)},
+    login:function(e,p){return auth.signInWithEmailAndPassword(e,p)},
+    logout:function(){return auth.signOut()},
+    reauth:function(pw){var u=auth.currentUser;if(!u)return Promise.reject({code:'sin-sesion'});return u.reauthenticateWithCredential(firebase.auth.EmailAuthProvider.credential(u.email,pw))},
+    vigilarClientes:function(cb,err){return CLI.onSnapshot(function(s){cb(s.docs.map(function(d){return Object.assign({id:d.id},d.data())}))},err)},
+    crearCliente:function(d){d.creadoEn=FV.serverTimestamp();d.creado=hoy();return CLI.add(d).then(function(r){return r.id})},
+    actualizarCliente:function(id,d){d.actualizado=hoy();return CLI.doc(id).update(d)}
+  };
+}
+/* ---------- Capa de datos: vista previa ---------- */
+function crearApiDemo(){
+  var cli=[
+    {id:'c1',nombre:'Almacén El Roble',tipo:'empresa',rut:'76.086.428-5',giro:'Venta de abarrotes',contacto:'Marta',telefono:'+56 9 1234 5678',email:'',direccion:'Calle Ejemplo 123',comuna:'Paine',region:REGION_DEF,indicaciones:'Portón verde · dejar en conserjería',pago:'Transferencia',documento:'Factura',entrega:'Envío pagado',nota:'',activo:true},
+    {id:'c2',nombre:'Pedro Soto',tipo:'persona',rut:'',telefono:'+56 9 8765 4321',direccion:'',comuna:'',region:'',pago:'Efectivo',documento:'Boleta',entrega:'Retira',activo:true}
+  ],cbs=[],n=10;
+  function emitir(){cbs.forEach(function(c){c(cli.map(function(x){return Object.assign({},x)}))})}
+  function ok(v){return new Promise(function(r){setTimeout(function(){r(v)},120)})}
+  return {
+    onAuth:function(cb){setTimeout(function(){cb({uid:'demo'})},0)},
+    login:function(){return ok()},
+    logout:function(){toast('En la vista previa no se cierra sesión.');return ok()},
+    reauth:function(pw){return pw?ok():Promise.reject({code:'auth/wrong-password'})},
+    vigilarClientes:function(cb){cbs.push(cb);setTimeout(emitir,0);return function(){cbs=cbs.filter(function(c){return c!==cb})}},
+    crearCliente:function(d){d.creado=hoy();var id='c'+(++n);cli.push(Object.assign({id:id},d));emitir();return ok(id)},
+    actualizarCliente:function(id,d){Object.assign(cli.find(function(c){return c.id===id}),d);emitir();return ok()}
+  };
+}
 
-                poblarSelectCava();
-            });
-        }
+document.title='Chuyma Ventas · '+APP_VERSION;
+Array.prototype.forEach.call(document.querySelectorAll('.app-ver,.app-ver-txt'),function(e){e.textContent=APP_VERSION});
+var esDemo = typeof firebase==='undefined' || /[?&]demo/.test(location.search) || /claude|anthropic|usercontent/.test(location.hostname);
+var api = esDemo ? crearApiDemo() : crearApiFirebase();
+if(esDemo) $('#aviso-demo').hidden=false;
 
-        function poblarSelectCava() {
-            const select = document.getElementById('selectCava');
-            select.innerHTML = '<option value="">-- Seleccionar Lote de Cava --</option>';
+var clientes=[],vista='lista',actual=null,desCli=null,filtro='activos';
 
-            cavaProductos.forEach(p => {
-                const isFIFO = (p.idLoteBrewfather || p.id) === loteRecomendadoFIFO;
-                const tagFIFO = isFIFO ? " ⭐ [RECOMENDADO FIFO]" : "";
-                select.innerHTML += `<option value="${p.id}" data-precio="${p.precioBrutoUnitario}" data-stock="${p.stock}" data-lote="${p.idLoteBrewfather || p.id}">
-                    ${p.nombreProducto} | Lote: ${p.idLoteBrewfather || p.id} | Stock: ${p.stock} u. | $${p.precioBrutoUnitario}${tagFIFO}
-                </option>`;
-            });
-        }
+/* ---------- Confirmación con contraseña (10 min), igual que la Bodega ---------- */
+var VALIDEZ=10*60*1000,confirmadoHasta=0,pwOk=null,pwNo=null;
+function confirmar(accion){
+  if(Date.now()<confirmadoHasta)return Promise.resolve();
+  return new Promise(function(ok,no){pwOk=ok;pwNo=no;
+    $('#pw-accion').textContent='Para '+accion+' necesitas tu contraseña.';$('#pw-input').value='';$('#pw-err').hidden=true;$('#pw-ok').disabled=false;
+    $('#dlg-pass').showModal();setTimeout(function(){$('#pw-input').focus()},50)});
+}
+$('#pw-cancelar').addEventListener('click',function(){$('#dlg-pass').close()});
+$('#dlg-pass').addEventListener('close',function(){if(pwNo){var n=pwNo;pwOk=pwNo=null;n('cancelado')}});
+$('#form-pass').addEventListener('submit',function(e){
+  e.preventDefault();var pw=$('#pw-input').value,err=$('#pw-err');err.hidden=true;
+  if(!pw){err.textContent='Escribe tu contraseña.';err.hidden=false;return}
+  $('#pw-ok').disabled=true;
+  api.reauth(pw).then(function(){confirmadoHasta=Date.now()+VALIDEZ;var o=pwOk;pwOk=pwNo=null;$('#dlg-pass').close();o()})
+  .catch(function(x){$('#pw-ok').disabled=false;var c=x&&x.code||'';err.textContent=c==='auth/too-many-requests'?'Demasiados intentos. Espera unos minutos.':c==='auth/network-request-failed'?'Sin conexión a internet.':'Contraseña incorrecta.';err.hidden=false;$('#pw-input').select()});
+});
+function protegido(accion,fn){return function(){confirmar(accion).then(fn).catch(function(){})}}
 
-        function actualizarDetallesLote() {
-            const select = document.getElementById('selectCava');
-            const selectedOption = select.options[select.selectedIndex];
-            const alerta = document.getElementById('alertaFIFO');
+/* ---------- Navegación y sesión ---------- */
+function ver(v){['lista','perfil','form'].forEach(function(x){$('#v-'+x).hidden=(x!==v)});vista=v;window.scrollTo(0,0)}
+document.addEventListener('click',function(e){if(e.target.closest('[data-volver]')){if(vista==='form'&&actual)abrirPerfil(actual);else{actual=null;ver('lista')}}});
+$('#b-clientes').addEventListener('click',function(){actual=null;ver('lista')});
+$('#form-login').addEventListener('submit',function(e){
+  e.preventDefault();var err=$('#l-err');err.hidden=true;var em=$('#l-email').value.trim(),pw=$('#l-pass').value;
+  if(!em||!pw){err.textContent='Escribe tu correo y contraseña.';err.hidden=false;return}
+  api.login(em,pw).catch(function(x){var c=x&&x.code||'';err.textContent=c==='auth/too-many-requests'?'Demasiados intentos. Espera unos minutos y vuelve a intentar.':c==='auth/network-request-failed'?'Sin conexión a internet. Revisa tu red.':'Correo o contraseña incorrectos.';err.hidden=false});
+});
+$('#b-salir').addEventListener('click',function(){if(confirm('¿Cerrar sesión?'))api.logout()});
+api.onAuth(function(user){
+  if(desCli){desCli();desCli=null}
+  if(user){
+    $('#login').hidden=true;$('#app').hidden=false;
+    desCli=api.vigilarClientes(function(d){clientes=d;pintarLista();if(vista==='perfil'&&actual)pintarPerfil(actual)},function(e){
+      $('#lista').innerHTML='<div class="vacio">'+(e&&e.code==='permission-denied'?'Tu cuenta no tiene permiso para ver los clientes. Falta agregar la regla de "clientes" en Firestore.':'No se pudieron cargar los clientes. Revisa tu conexión.')+'</div>'});
+  }else{clientes=[];confirmadoHasta=0;$('#app').hidden=true;$('#login').hidden=false}
+});
 
-            if (!selectedOption.value) {
-                alerta.classList.add('hidden');
-                return;
-            }
+/* ---------- Lista ---------- */
+function pintarChips(){
+  var act=clientes.filter(function(c){return c.activo!==false}),falt=act.filter(alertaDespacho),arch=clientes.length-act.length;
+  $('#chips').innerHTML=[['activos','Activos',act.length],['faltan','Faltan datos de despacho',falt.length],['archivados','Archivados',arch]].map(function(c){return '<button type="button" class="chip'+(filtro===c[0]?' on':'')+'" data-f="'+c[0]+'">'+c[1]+' ('+c[2]+')</button>'}).join('');
+  $('#resumen').textContent=act.length+(act.length===1?' cliente':' clientes');
+}
+$('#chips').addEventListener('click',function(e){var b=e.target.closest('[data-f]');if(b){filtro=b.dataset.f;pintarLista()}});
+var tB;$('#buscar').addEventListener('input',function(){clearTimeout(tB);tB=setTimeout(pintarLista,120)});
+function pintarLista(){
+  pintarChips();
+  var q=sinTildes($('#buscar').value.trim()),qr=rutLimpio($('#buscar').value);
+  var ds=clientes.filter(function(c){
+    if(filtro==='archivados'?c.activo!==false:c.activo===false)return false;
+    if(filtro==='faltan'&&!alertaDespacho(c))return false;
+    if(!q)return true;
+    return [c.nombre,c.contacto,c.comuna,c.telefono,c.email].some(function(v){return sinTildes(v).indexOf(q)>=0})||(qr.length>=3&&rutLimpio(c.rut).indexOf(qr)>=0);
+  }).sort(function(a,b){return String(a.nombre).localeCompare(String(b.nombre),'es')});
+  if(!ds.length){$('#lista').innerHTML='<div class="vacio">'+(clientes.length?'Ningún cliente coincide.':'Todavía no tienes clientes. Presiona "Nuevo cliente".')+'</div>';return}
+  $('#lista').innerHTML=ds.map(function(c){var f=faltaDespacho(c);
+    return '<button class="fila" type="button" data-id="'+esc(c.id)+'"><div><strong>'+esc(c.nombre)+'</strong><small>'+esc([c.comuna,c.telefono].filter(Boolean).join(' · ')||'Sin datos de contacto')+'</small></div><div class="der">'+
+      (c.activo===false?'<span class="tag t-warn">Archivado</span>':alertaDespacho(c)?'<span class="tag t-warn">Faltan datos de despacho</span>':'<span class="tag t-ok">'+esc(c.documento||'Boleta')+'</span>')+'</div></button>'}).join('');
+}
+$('#lista').addEventListener('click',function(e){var f=e.target.closest('[data-id]');if(f)abrirPerfil(f.dataset.id)});
 
-            const loteSeleccionado = selectedOption.getAttribute('data-lote');
-            if (loteSeleccionado !== loteRecomendadoFIFO) {
-                alerta.innerHTML = `⚠️ <b>Atención FIFO:</b> Estás seleccionando el lote <b>${loteSeleccionado}</b>, pero el lote más antiguo en cava es <b>${loteRecomendadoFIFO}</b>.`;
-                alerta.classList.remove('hidden');
-            } else {
-                alerta.innerHTML = `✅ <b>Cumple FIFO:</b> Estás despachando el lote más antiguo (<b>${loteSeleccionado}</b>).`;
-                alerta.classList.remove('hidden');
-            }
+/* ---------- Ficha ---------- */
+function abrirPerfil(id){actual=id;pintarPerfil(id);ver('perfil')}
+function pintarPerfil(id){
+  var c=clientes.find(function(x){return x.id===id});if(!c){actual=null;ver('lista');return}
+  var f=faltaDespacho(c);
+  var dt=[['Tipo',c.tipo==='empresa'?'Empresa':'Persona'],['RUT',c.rut?esc(c.rut):'<span style="color:var(--warn)">Sin RUT'+(c.documento==='Factura'?' · lo necesitas para facturar':'')+'</span>']];
+  if(c.tipo==='empresa')dt.push(['Giro',c.giro?esc(c.giro):'<span style="color:var(--warn)">Falta · lo pide la factura</span>']);
+  if(c.contacto)dt.push(['Contacto',esc(c.contacto)]);
+  dt.push(['Teléfono',c.telefono?'<a href="tel:'+esc(String(c.telefono).replace(/\s/g,''))+'">'+esc(c.telefono)+'</a>':'—']);
+  if(c.email)dt.push(['Correo','<a href="mailto:'+esc(c.email)+'">'+esc(c.email)+'</a>']);
+  dt.push(['Forma de pago',esc(c.pago||'—')],['Documento',esc(c.documento||'—')],['Entrega',esc(c.entrega||'—')]);
+  if(c.nota)dt.push(['Notas','<span style="white-space:pre-line">'+esc(c.nota)+'</span>']);
+  var desp=f.length===4?'<p class="nota">Sin datos de despacho. Si el cliente siempre retira, no hacen falta.</p>':
+    '<div class="despacho"><p class="d-dir">'+esc(c.direccion||'—')+'</p><p class="d-com">'+esc((c.comuna||'—').toUpperCase())+'</p><p>'+esc(c.region||'—')+'</p>'+(c.indicaciones?'<p class="d-ind">'+esc(c.indicaciones)+'</p>':'')+'</div>'+
+    (f.length&&necesitaDespacho(c)?'<p class="nota" style="color:var(--warn)">Para la etiqueta de despacho falta: '+f.join(', ')+'.</p>':'');
+  $('#v-perfil').innerHTML='<div class="cab"><div><button type="button" class="btn-link" data-volver>Volver</button><h2>'+esc(c.nombre)+'</h2><p class="sub">Cliente desde '+esc(c.creado?c.creado.split('-').reverse().join('-'):'—')+(c.activo===false?' · archivado':'')+'</p></div>'+
+    '<div class="acciones"><button class="btn" type="button" id="p-copiar"'+(f.length?' disabled':'')+'>Copiar datos de despacho</button><button class="btn btn-a" type="button" id="p-editar">Editar</button></div></div>'+
+    '<dl class="datos">'+dt.map(function(d){return '<dt>'+d[0]+'</dt><dd>'+d[1]+'</dd>'}).join('')+'</dl>'+
+    '<div class="sec"><h3>Despacho</h3></div>'+desp;
+  $('#p-editar').onclick=protegido('editar este cliente',function(){abrirForm(c.id)});
+  $('#p-copiar').onclick=function(){var t=[c.nombre,c.direccion,c.comuna+', '+c.region,'Tel. '+c.telefono,c.indicaciones].filter(Boolean).join('\n');
+    (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){toast('Datos de despacho copiados')}).catch(function(){prompt('Copia estos datos:',t.replace(/\n/g,' · '))})};
+}
 
-            calcularTotal();
-        }
-
-        function calcularTotal() {
-            const select = document.getElementById('selectCava');
-            const selectedOption = select.options[select.selectedIndex];
-            const cant = parseInt(document.getElementById('cantidad').value) || 0;
-
-            if (!selectedOption || !selectedOption.value || cant <= 0) {
-                document.getElementById('lblPrecioUnit').innerText = "$0";
-                document.getElementById('lblNeto').innerText = "$0";
-                document.getElementById('lblILA').innerText = "$0";
-                document.getElementById('lblIVA').innerText = "$0";
-                document.getElementById('lblTotal').innerText = "$0";
-                return;
-            }
-
-            const precioBrutoUnit = parseFloat(selectedOption.getAttribute('data-precio')) || 0;
-            const totalBruto = precioBrutoUnit * cant;
-
-            // Factor de desglose contable (Neto * 1.47 = Bruto)
-            const neto = totalBruto / 1.47;
-            const ila = neto * 0.28;
-            const iva = neto * 0.19;
-
-            document.getElementById('lblPrecioUnit').innerText = `$${precioBrutoUnit.toLocaleString('es-CL')}`;
-            document.getElementById('lblNeto').innerText = `$${Math.round(neto).toLocaleString('es-CL')}`;
-            document.getElementById('lblILA').innerText = `$${Math.round(ila).toLocaleString('es-CL')}`;
-            document.getElementById('lblIVA').innerText = `$${Math.round(iva).toLocaleString('es-CL')}`;
-            document.getElementById('lblTotal').innerText = `$${Math.round(totalBruto).toLocaleString('es-CL')}`;
-        }
-
-        function generarPedido() {
-            const cliente = document.getElementById('cliente').value.trim();
-            const rut = document.getElementById('rutCliente').value.trim();
-            const direccion = document.getElementById('direccionDespacho').value.trim();
-            const formaPago = document.getElementById('formaPago').value;
-            const select = document.getElementById('selectCava');
-            const selectedOption = select.options[select.selectedIndex];
-            const cant = parseInt(document.getElementById('cantidad').value) || 0;
-
-            if (!cliente || !rut || !direccion || !selectedOption.value || cant <= 0) {
-                alert("Por favor completa todos los campos obligatorios.");
-                return;
-            }
-
-            const stockDisponible = parseInt(selectedOption.getAttribute('data-stock'));
-            if (cant > stockDisponible) {
-                alert(`Stock insuficiente. Solo hay ${stockDisponible} unidades disponibles.`);
-                return;
-            }
-
-            const idCava = selectedOption.value;
-            const loteBrewfather = selectedOption.getAttribute('data-lote'); // MATCH DE TRAZABILIDAD
-            const precioBrutoUnit = parseFloat(selectedOption.getAttribute('data-precio'));
-            const totalBruto = precioBrutoUnit * cant;
-            const neto = totalBruto / 1.47;
-            const idOT = "OT-" + Date.now().toString().slice(-6);
-
-            // Transacción en Firestore para asegurar consistencia
-            db.runTransaction(transaction => {
-                const cavaRef = db.collection('inventariochuyma').doc(idCava);
-                
-                return transaction.get(cavaRef).then(cavaDoc => {
-                    if (!cavaDoc.exists) throw "El producto ya no existe en la cava.";
-                    
-                    const nuevoStock = cavaDoc.data().stock - cant;
-                    if (nuevoStock < 0) throw "Stock insuficiente en tiempo real.";
-
-                    // 1. Descontar stock de Cava
-                    transaction.update(cavaRef, { stock: nuevoStock });
-
-                    // 2. Guardar Orden de Trabajo con MATCH DE TRAZABILIDAD
-                    const otRef = db.collection('pedidos_y_lotes').doc();
-                    transaction.set(otRef, {
-                        codigoOT: idOT,
-                        cliente: cliente,
-                        rutCliente: rut,
-                        direccionDespacho: direccion,
-                        formaPago: formaPago,
-                        loteCerveza: loteBrewfather, // <--- MATCH CON BREWFATHER
-                        cantidad: cant,
-                        precioBrutoUnitario: precioBrutoUnit,
-                        subtotalNeto: Math.round(neto),
-                        ila: Math.round(neto * 0.28),
-                        iva: Math.round(neto * 0.19),
-                        totalBruto: Math.round(totalBruto),
-                        cumpleFIFO: (loteBrewfather === loteRecomendadoFIFO),
-                        fechaEmision: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                });
-            }).then(() => {
-                alert(`¡Orden de Trabajo ${idOT} generada con éxito!\nStock actualizado en Cava.`);
-                location.reload();
-            }).catch(err => {
-                alert("Error al procesar el pedido: " + err);
-            });
-        }
-    </script>
+/* ---------- Formulario ---------- */
+$('#f-region').innerHTML='<option value="">— elige —</option>'+REGIONES.map(function(r){return '<option>'+esc(r)+'</option>'}).join('');
+$('#comunas').innerHTML=COMUNAS_RM.map(function(c){return '<option value="'+esc(c)+'">'}).join('');
+$('#b-nuevo').addEventListener('click',function(){abrirForm(null)});
+function tipoForm(){$('#f-giro-box').hidden=$('#f-tipo').value!=='empresa'}
+$('#f-tipo').addEventListener('change',tipoForm);
+$('#f-rut').addEventListener('blur',function(){var v=this.value.trim();if(v)this.value=rutFormato(v);notaRut()});
+function notaRut(){var v=$('#f-rut').value.trim(),n=$('#f-rut-nota');
+  if(v&&!rutValido(v)){n.textContent='El dígito verificador no coincide. Revisa el RUT.';n.style.color='var(--red)'}else{n.textContent='Necesario para factura. No se imprime en la etiqueta.';n.style.color=''}}
+$('#f-tel').addEventListener('blur',function(){if(this.value.trim())this.value=telFormato(this.value)});
+$('#f-comuna').addEventListener('change',function(){var v=sinTildes(this.value.trim());var m=COMUNAS_RM.find(function(c){return sinTildes(c)===v});if(m){this.value=m;if(!$('#f-region').value)$('#f-region').value=REGION_DEF}});
+function abrirForm(id){
+  var c=id?clientes.find(function(x){return x.id===id}):null;actual=id;
+  var d=c||{tipo:'persona',region:'',pago:'Transferencia',documento:'Boleta',entrega:'Retira'};
+  $('#f-titulo').textContent=c?'Editar cliente':'Nuevo cliente';$('#f-err').hidden=true;$('#f-guardar').disabled=false;
+  $('#f-archivar').hidden=!c;$('#f-archivar').textContent=c&&c.activo===false?'Reactivar cliente':'Archivar cliente';
+  $('#f-nombre').value=d.nombre||'';$('#f-tipo').value=d.tipo==='empresa'?'empresa':'persona';$('#f-rut').value=d.rut||'';$('#f-giro').value=d.giro||'';
+  $('#f-contacto').value=d.contacto||'';$('#f-tel').value=d.telefono||'';$('#f-email').value=d.email||'';
+  $('#f-dir').value=d.direccion||'';$('#f-comuna').value=d.comuna||'';$('#f-region').value=d.region||'';$('#f-ind').value=d.indicaciones||'';
+  $('#f-pago').value=d.pago||'Transferencia';$('#f-doc').value=d.documento||'Boleta';$('#f-entrega').value=d.entrega||'Retira';$('#f-nota').value=d.nota||'';
+  tipoForm();notaRut();ver('form');$('#f-nombre').focus();
+}
+$('#form-cli').addEventListener('submit',function(e){
+  e.preventDefault();var err=$('#f-err');err.hidden=true;
+  function mal(t,el){err.textContent=t;err.hidden=false;if(el)$(el).focus()}
+  var nombre=$('#f-nombre').value.trim().replace(/\s+/g,' '),rut=$('#f-rut').value.trim(),tel=$('#f-tel').value.trim(),em=$('#f-email').value.trim();
+  if(!nombre)return mal('Escribe el nombre o razón social.','#f-nombre');
+  if(rut&&!rutValido(rut))return mal('El RUT no es válido: el dígito verificador no coincide.','#f-rut');
+  if(rut){var otro=clientes.find(function(x){return x.id!==actual&&x.rut&&rutLimpio(x.rut)===rutLimpio(rut)});if(otro)return mal('Ya existe un cliente con ese RUT: '+otro.nombre+'.','#f-rut')}
+  if(tel&&!telValido(tel))return mal('Revisa el teléfono: debe tener 9 dígitos, por ejemplo +56 9 1234 5678.','#f-tel');
+  if(em&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em))return mal('Revisa el correo.','#f-email');
+  if($('#f-doc').value==='Factura'&&(!rut||($('#f-tipo').value==='empresa'&&!$('#f-giro').value.trim()))&&!confirm('Para emitir factura necesitas el RUT'+($('#f-tipo').value==='empresa'?' y el giro':'')+'. ¿Guardar igual y completarlo después?'))return;
+  var p={nombre:nombre,tipo:$('#f-tipo').value,rut:rut?rutFormato(rut):'',giro:$('#f-tipo').value==='empresa'?$('#f-giro').value.trim():'',contacto:$('#f-contacto').value.trim(),telefono:tel?telFormato(tel):'',email:em,
+    direccion:$('#f-dir').value.trim(),comuna:$('#f-comuna').value.trim(),region:$('#f-region').value,indicaciones:$('#f-ind').value.trim(),
+    pago:$('#f-pago').value,documento:$('#f-doc').value,entrega:$('#f-entrega').value,nota:$('#f-nota').value.trim()};
+  if(p.entrega!=='Retira'&&faltaDespacho(p).length&&!confirm('Este cliente recibe envíos, pero falta: '+faltaDespacho(p).join(', ')+'. Sin eso no se puede imprimir la etiqueta. ¿Guardar igual?'))return;
+  $('#f-guardar').disabled=true;
+  (actual?api.actualizarCliente(actual,p).then(function(){return actual}):(p.activo=true,api.crearCliente(p)))
+  .then(function(id){toast('Cliente guardado');setTimeout(function(){abrirPerfil(id)},150)})
+  .catch(function(x){$('#f-guardar').disabled=false;mal(x&&x.code==='permission-denied'?'Firestore no dio permiso. Falta agregar la regla de "clientes".':'No se pudo guardar. Revisa tu conexión.')});
+});
+$('#f-archivar').addEventListener('click',protegido('archivar o reactivar este cliente',function(){
+  var c=clientes.find(function(x){return x.id===actual});if(!c)return;var arch=c.activo!==false;
+  if(arch&&!confirm('¿Archivar a '+c.nombre+'?\n\nNo se borra: deja de aparecer en la lista y en los pedidos nuevos. Sus pedidos antiguos se conservan.'))return;
+  api.actualizarCliente(c.id,{activo:!arch}).then(function(){toast(arch?'Cliente archivado':'Cliente reactivado');abrirPerfil(c.id)}).catch(function(){toast('No se pudo guardar. Revisa tu conexión.')});
+}));
+</script>
 </body>
 </html>
